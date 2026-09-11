@@ -19,7 +19,7 @@
 | **M7** | Mobile App — Sync (QR Export/Import) | ✅ COMPLETE |
 | **M8** | Desktop App (Tauri + React) | ✅ COMPLETE |
 | **M9** | Polish, Security Audit & Testing | ✅ COMPLETE |
-| **M10** | Build & Release (APK + EXE) | Day 23–25 |
+| **M10** | Build & Release (APK + EXE) | ✅ COMPLETE |
 
 ---
 
