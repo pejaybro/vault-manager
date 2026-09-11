@@ -1,8 +1,9 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Lock, Fingerprint, ShieldAlert, QrCode, FileUp } from 'lucide-react-native';
+import { Lock, Fingerprint, ShieldAlert, QrCode, FileUp, Smartphone } from 'lucide-react-native';
 import { useVault } from '../../../context/VaultContext';
+import { AutofillModule } from '../../../modules/autofill/AutofillModule';
 import { COLORS, RADII, SPACING } from '../../../constants/theme';
 
 export default function SettingsScreen() {
@@ -39,6 +40,13 @@ export default function SettingsScreen() {
             </View>
           </TouchableOpacity>
         )}
+
+        <TouchableOpacity style={styles.row} onPress={() => AutofillModule.openAutofillSettings()}>
+          <View style={styles.rowLeft}>
+            <Smartphone size={20} color={COLORS.success} />
+            <Text style={styles.rowLabel}>Set System Autofill Provider (Android)</Text>
+          </View>
+        </TouchableOpacity>
 
         <TouchableOpacity style={[styles.row, styles.dangerRow]} onPress={lock}>
           <View style={styles.rowLeft}>
