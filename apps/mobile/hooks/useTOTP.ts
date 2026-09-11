@@ -1,13 +1,30 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { generateTOTP, getTimeRemaining, getProgress, formatCode } from '@vault/core';
 
 export function useTOTP(secret: string, period = 30, digits = 6) {
-  const [code, setCode] = useState(() =>
-    secret ? generateTOTP(secret, period, digits) : '------'
-  );
+  const [code, setCode] = useState('------');
   const [remaining, setRemaining] = useState(() => getTimeRemaining(period));
   const [progress, setProgress] = useState(() => getProgress(period));
 
+  const refreshCode = useCallback(async () => {
+    if (!secret) {
+      setCode('------');
+      return;
+    }
+    try {
+      const newCode = await generateTOTP(secret, period, digits);
+      setCode(newCode);
+    } catch {
+      setCode('ERROR');
+    }
+  }, [secret, period, digits]);
+
+  // Generate initial code
+  useEffect(() => {
+    refreshCode();
+  }, [refreshCode]);
+
+  // Tick every second — update timer and regenerate code on period boundary
   useEffect(() => {
     if (!secret) return;
 
@@ -18,18 +35,14 @@ export function useTOTP(secret: string, period = 30, digits = 6) {
       setRemaining(rem);
       setProgress(prog);
 
-      // Regenerate code when remaining hits 30 (or period)
-      if (rem === period || code === '------') {
-        try {
-          setCode(generateTOTP(secret, period, digits));
-        } catch {
-          setCode('ERROR');
-        }
+      // Regenerate code when timer resets to full period
+      if (rem === period) {
+        refreshCode();
       }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [secret, period, digits, code]);
+  }, [secret, period, refreshCode]);
 
   return {
     code,

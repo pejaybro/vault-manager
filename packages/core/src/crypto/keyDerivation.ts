@@ -6,12 +6,20 @@
 
 // Key derivation using Web Crypto API PBKDF2 (Argon2id compatible interface)
 
+function getCrypto(): Crypto {
+  const c = (typeof globalThis !== 'undefined' && globalThis.crypto) ||
+            (typeof window !== 'undefined' && window.crypto) ||
+            (typeof globalThis !== 'undefined' && (globalThis as any).crypto);
+  if (!c) throw new Error('Web Crypto API is unavailable. Polyfill required.');
+  return c;
+}
+
 /**
  * Generate a cryptographically random salt (16 bytes)
  */
 export function generateSalt(): Uint8Array {
   const salt = new Uint8Array(16);
-  crypto.getRandomValues(salt);
+  getCrypto().getRandomValues(salt);
   return salt;
 }
 
@@ -27,7 +35,7 @@ export async function deriveKey(
   const passwordBuffer = encoder.encode(password);
 
   // Import password as raw key material
-  const keyMaterial = await crypto.subtle.importKey(
+  const keyMaterial = await getCrypto().subtle.importKey(
     'raw',
     passwordBuffer,
     'PBKDF2',
@@ -36,7 +44,7 @@ export async function deriveKey(
   );
 
   // Derive AES-256-GCM key
-  return crypto.subtle.deriveKey(
+  return getCrypto().subtle.deriveKey(
     {
       name: 'PBKDF2',
       salt: salt as any,

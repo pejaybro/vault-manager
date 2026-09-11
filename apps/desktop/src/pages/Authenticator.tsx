@@ -6,7 +6,12 @@ import { getEntriesByType, generateTOTP, getTimeRemaining, getProgress, formatCo
 const DesktopTOTPCard: React.FC<{ entry: any; onDelete: (id: string) => void }> = ({ entry, onDelete }) => {
   const data = entry.data as TOTPData;
 
-  const [code, setCode] = useState(() => generateTOTP(data.secret, data.period, data.digits));
+  const [code, setCode] = useState('------');
+
+  // Generate initial code on mount (async)
+  useEffect(() => {
+    generateTOTP(data.secret, data.period, data.digits).then(setCode).catch(() => setCode('ERROR'));
+  }, []);
   const [remaining, setRemaining] = useState(() => getTimeRemaining(data.period));
   const [progress, setProgress] = useState(() => getProgress(data.period));
   const [copied, setCopied] = useState(false);
@@ -21,7 +26,7 @@ const DesktopTOTPCard: React.FC<{ entry: any; onDelete: (id: string) => void }> 
 
       if (rem === data.period || code === '------') {
         try {
-          setCode(generateTOTP(data.secret, data.period, data.digits));
+          generateTOTP(data.secret, data.period, data.digits).then(setCode);
         } catch {
           setCode('ERROR');
         }
@@ -118,7 +123,7 @@ export const AuthenticatorPage: React.FC = () => {
     if (!issuer.trim() || !secret.trim()) return;
 
     const cleanSecret = secret.trim().replace(/\s+/g, '').toUpperCase();
-    if (!validateSecret(cleanSecret)) {
+    if (!(await validateSecret(cleanSecret))) {
       alert('Secret key must be a valid Base32 string (A-Z, 2-7)');
       return;
     }

@@ -45,7 +45,7 @@ export default function AddTOTPScreen() {
     }
 
     const cleanSecret = secret.trim().replace(/\s+/g, '').toUpperCase();
-    if (!validateSecret(cleanSecret)) {
+    if (!(await validateSecret(cleanSecret))) {
       Alert.alert('Invalid Secret', 'Secret key must be a valid Base32 string (A-Z, 2-7)');
       return;
     }

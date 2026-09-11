@@ -11,8 +11,8 @@ import {
 describe('TOTP Engine', () => {
   const sampleSecret = 'JBSWY3DPEHPK3PXP'; // Base32 secret for "Hello!"
 
-  it('should generate a 6-digit TOTP code', () => {
-    const code = generateTOTP(sampleSecret);
+  it('should generate a 6-digit TOTP code', async () => {
+    const code = await generateTOTP(sampleSecret);
     expect(code).toHaveLength(6);
     expect(/^\d{6}$/.test(code)).toBe(true);
   });
@@ -32,9 +32,9 @@ describe('TOTP Engine', () => {
     expect(progress).toBeLessThanOrEqual(1);
   });
 
-  it('should validate base32 secrets', () => {
-    expect(validateSecret(sampleSecret)).toBe(true);
-    expect(validateSecret('invalid secret 123!@#')).toBe(false);
+  it('should validate base32 secrets', async () => {
+    expect(await validateSecret(sampleSecret)).toBe(true);
+    expect(await validateSecret('invalid secret 123!@#')).toBe(false);
   });
 
   it('should parse valid otpauth:// URIs', () => {

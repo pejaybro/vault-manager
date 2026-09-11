@@ -14,7 +14,7 @@ export interface VaultAuditReport {
   missing2FACount: number;
   oldPasswordCount: number;
   weakEntries: { id: string; name: string }[];
-  reusedGroups: { password: string; count: number; entries: { id: string; name: string }[] }[];
+  reusedGroups: { groupKey: string; count: number; entries: { id: string; name: string }[] }[];
 }
 
 export function auditVaultHealth(vault: Vault | null): VaultAuditReport {
@@ -74,12 +74,14 @@ export function auditVaultHealth(vault: Vault | null): VaultAuditReport {
   });
 
   // Collect Reused Groups
-  const reusedGroups: { password: string; count: number; entries: { id: string; name: string }[] }[] = [];
+  const reusedGroups: { groupKey: string; count: number; entries: { id: string; name: string }[] }[] = [];
   let reusedCount = 0;
 
   passwordMap.forEach((entries, password) => {
     if (entries.length > 1) {
-      reusedGroups.push({ password, count: entries.length, entries });
+      // Use a masked identifier instead of the raw password
+      const groupKey = `reused_${reusedGroups.length + 1}`;
+      reusedGroups.push({ groupKey, count: entries.length, entries });
       reusedCount += entries.length;
     }
   });

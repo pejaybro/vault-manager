@@ -8,6 +8,14 @@ import { uint8ToBase64, base64ToUint8 } from './keyDerivation';
 
 const IV_LENGTH = 12; // 96 bits for AES-GCM
 
+function getCrypto(): Crypto {
+  const c = (typeof globalThis !== 'undefined' && globalThis.crypto) ||
+            (typeof window !== 'undefined' && window.crypto) ||
+            (typeof globalThis !== 'undefined' && (globalThis as any).crypto);
+  if (!c) throw new Error('Web Crypto API is unavailable. Polyfill required.');
+  return c;
+}
+
 /**
  * Encrypt a plaintext string with AES-256-GCM
  */
@@ -17,9 +25,9 @@ export async function encrypt(
 ): Promise<{ iv: string; data: string }> {
   const encoder = new TextEncoder();
   const iv = new Uint8Array(IV_LENGTH);
-  crypto.getRandomValues(iv);
+  getCrypto().getRandomValues(iv);
 
-  const cipherBuffer = await crypto.subtle.encrypt(
+  const cipherBuffer = await getCrypto().subtle.encrypt(
     { name: 'AES-GCM', iv },
     key,
     encoder.encode(plaintext)
@@ -41,7 +49,7 @@ export async function decrypt(
 ): Promise<string> {
   const decoder = new TextDecoder();
 
-  const plainBuffer = await crypto.subtle.decrypt(
+  const plainBuffer = await getCrypto().subtle.decrypt(
     { name: 'AES-GCM', iv: base64ToUint8(iv) as any },
     key,
     base64ToUint8(encryptedData) as any
@@ -83,6 +91,6 @@ export async function decryptVault(
  */
 export async function sha256(input: string): Promise<string> {
   const encoder = new TextEncoder();
-  const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(input));
+  const hashBuffer = await getCrypto().subtle.digest('SHA-256', encoder.encode(input));
   return uint8ToBase64(new Uint8Array(hashBuffer));
 }

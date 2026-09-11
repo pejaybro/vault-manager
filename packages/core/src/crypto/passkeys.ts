@@ -16,6 +16,14 @@ export interface PasskeyData {
   signCount: number;          // Sign counter
 }
 
+function getCrypto(): Crypto {
+  const c = (typeof globalThis !== 'undefined' && globalThis.crypto) ||
+            (typeof window !== 'undefined' && window.crypto) ||
+            (typeof globalThis !== 'undefined' && (globalThis as any).crypto);
+  if (!c) throw new Error('Web Crypto API is unavailable. Polyfill required.');
+  return c;
+}
+
 /**
  * Generate a new FIDO2 / WebAuthn ECDSA P-256 keypair
  */
@@ -24,7 +32,7 @@ export async function generatePasskey(
   rpName: string,
   userName: string
 ): Promise<PasskeyData> {
-  const keyPair = await crypto.subtle.generateKey(
+  const keyPair = await getCrypto().subtle.generateKey(
     {
       name: 'ECDSA',
       namedCurve: 'P-256',
@@ -35,15 +43,15 @@ export async function generatePasskey(
 
   // Generate random 16-byte credential ID
   const credentialIdBytes = new Uint8Array(16);
-  crypto.getRandomValues(credentialIdBytes);
+  getCrypto().getRandomValues(credentialIdBytes);
   const credentialId = uint8ToBase64(credentialIdBytes);
 
   // Export public key
-  const rawPublicKey = await crypto.subtle.exportKey('spki', keyPair.publicKey);
+  const rawPublicKey = await getCrypto().subtle.exportKey('spki', keyPair.publicKey);
   const publicKeyPem = uint8ToBase64(new Uint8Array(rawPublicKey));
 
   // Export private key
-  const rawPrivateKey = await crypto.subtle.exportKey('pkcs8', keyPair.privateKey);
+  const rawPrivateKey = await getCrypto().subtle.exportKey('pkcs8', keyPair.privateKey);
   const privateKeyPkcs8 = uint8ToBase64(new Uint8Array(rawPrivateKey));
 
   return {
@@ -67,7 +75,7 @@ export async function signPasskeyChallenge(
 ): Promise<string> {
   const privateKeyBytes = base64ToUint8(passkey.privateKeyPkcs8);
 
-  const privateKey = await crypto.subtle.importKey(
+  const privateKey = await getCrypto().subtle.importKey(
     'pkcs8',
     privateKeyBytes as any,
     { name: 'ECDSA', namedCurve: 'P-256' },
@@ -77,7 +85,7 @@ export async function signPasskeyChallenge(
 
   const challengeBytes = base64ToUint8(challengeBase64);
 
-  const signature = await crypto.subtle.sign(
+  const signature = await getCrypto().subtle.sign(
     { name: 'ECDSA', hash: 'SHA-256' },
     privateKey,
     challengeBytes as any
