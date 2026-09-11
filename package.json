@@ -1,0 +1,16 @@
+{
+  "name": "vault-manager",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "mobile": "pnpm --filter mobile start",
+    "desktop": "pnpm --filter desktop dev",
+    "build:mobile": "pnpm --filter mobile build",
+    "build:desktop": "pnpm --filter desktop build",
+    "test": "pnpm --filter @vault/core test",
+    "lint": "pnpm -r lint"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0"
+  }
+}
