@@ -8,3 +8,4 @@ export * from './vault/session';
 export * from './vault/storage';
 export * from './crypto/passkeys';
 export * from './vault/vaultAudit';
+export * from './vault/duress';
