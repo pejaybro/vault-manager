@@ -14,7 +14,7 @@
 | **M2** | Core Crypto & Vault Engine | ✅ COMPLETE |
 | **M3** | Mobile App — Auth & Vault UI | ✅ COMPLETE |
 | **M4** | Mobile App — Password Manager | ✅ COMPLETE |
-| **M5** | Mobile App — TOTP Authenticator | Day 9–11 |
+| **M5** | Mobile App — TOTP Authenticator | ✅ COMPLETE |
 | **M6** | Mobile App — Key Manager | Day 11–13 |
 | **M7** | Mobile App — Sync (QR Export/Import) | Day 13–15 |
 | **M8** | Desktop App (Tauri + React) | Day 15–20 |
