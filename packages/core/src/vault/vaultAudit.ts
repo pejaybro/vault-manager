@@ -77,7 +77,7 @@ export function auditVaultHealth(vault: Vault | null): VaultAuditReport {
   const reusedGroups: { groupKey: string; count: number; entries: { id: string; name: string }[] }[] = [];
   let reusedCount = 0;
 
-  passwordMap.forEach((entries, password) => {
+  passwordMap.forEach((entries) => {
     if (entries.length > 1) {
       // Use a masked identifier instead of the raw password
       const groupKey = `reused_${reusedGroups.length + 1}`;
