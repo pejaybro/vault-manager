@@ -1,10 +1,12 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import { Lock, Fingerprint, ShieldAlert } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
+import { Lock, Fingerprint, ShieldAlert, QrCode, FileUp } from 'lucide-react-native';
 import { useVault } from '../../../context/VaultContext';
 import { COLORS, RADII, SPACING } from '../../../constants/theme';
 
 export default function SettingsScreen() {
+  const router = useRouter();
   const { lock, hasBiometrics, enableBiometrics } = useVault();
 
   const handleEnableBio = async () => {
@@ -42,6 +44,24 @@ export default function SettingsScreen() {
           <View style={styles.rowLeft}>
             <Lock size={20} color={COLORS.danger} />
             <Text style={[styles.rowLabel, { color: COLORS.danger }]}>Lock Vault Now</Text>
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Sync & Backup</Text>
+
+        <TouchableOpacity style={styles.row} onPress={() => router.push('/(tabs)/settings/export')}>
+          <View style={styles.rowLeft}>
+            <QrCode size={20} color={COLORS.primary} />
+            <Text style={styles.rowLabel}>Export Vault / QR Code Sync</Text>
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.row} onPress={() => router.push('/(auth)/import')}>
+          <View style={styles.rowLeft}>
+            <FileUp size={20} color={COLORS.accent} />
+            <Text style={styles.rowLabel}>Import Vault File</Text>
           </View>
         </TouchableOpacity>
       </View>

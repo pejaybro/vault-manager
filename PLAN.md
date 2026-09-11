@@ -16,7 +16,7 @@
 | **M4** | Mobile App — Password Manager | ✅ COMPLETE |
 | **M5** | Mobile App — TOTP Authenticator | ✅ COMPLETE |
 | **M6** | Mobile App — Key Manager | ✅ COMPLETE |
-| **M7** | Mobile App — Sync (QR Export/Import) | Day 13–15 |
+| **M7** | Mobile App — Sync (QR Export/Import) | ✅ COMPLETE |
 | **M8** | Desktop App (Tauri + React) | Day 15–20 |
 | **M9** | Polish, Security Audit & Testing | Day 20–23 |
 | **M10** | Build & Release (APK + EXE) | Day 23–25 |
