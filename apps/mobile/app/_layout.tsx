@@ -1,4 +1,13 @@
 import 'react-native-get-random-values';
+import { Crypto as PeculiarCrypto } from '@peculiar/webcrypto';
+
+if (typeof globalThis !== 'undefined' && globalThis.crypto) {
+  if (!(globalThis.crypto as any).subtle) {
+    const peculiar = new PeculiarCrypto();
+    (globalThis.crypto as any).subtle = peculiar.subtle;
+  }
+}
+
 import React, { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
