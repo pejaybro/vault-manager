@@ -11,7 +11,7 @@
 |---|---|---|
 | **M0** | Environment Setup | Day 1 |
 | **M1** | Project Scaffold & Architecture | Day 1–2 |
-| **M2** | Core Crypto & Vault Engine | Day 2–4 |
+| **M2** | Core Crypto & Vault Engine | ✅ COMPLETE |
 | **M3** | Mobile App — Auth & Vault UI | Day 4–7 |
 | **M4** | Mobile App — Password Manager | Day 7–9 |
 | **M5** | Mobile App — TOTP Authenticator | Day 9–11 |
