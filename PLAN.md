@@ -15,7 +15,7 @@
 | **M3** | Mobile App — Auth & Vault UI | ✅ COMPLETE |
 | **M4** | Mobile App — Password Manager | ✅ COMPLETE |
 | **M5** | Mobile App — TOTP Authenticator | ✅ COMPLETE |
-| **M6** | Mobile App — Key Manager | Day 11–13 |
+| **M6** | Mobile App — Key Manager | ✅ COMPLETE |
 | **M7** | Mobile App — Sync (QR Export/Import) | Day 13–15 |
 | **M8** | Desktop App (Tauri + React) | Day 15–20 |
 | **M9** | Polish, Security Audit & Testing | Day 20–23 |
