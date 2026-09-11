@@ -18,7 +18,7 @@
 | **M6** | Mobile App — Key Manager | ✅ COMPLETE |
 | **M7** | Mobile App — Sync (QR Export/Import) | ✅ COMPLETE |
 | **M8** | Desktop App (Tauri + React) | ✅ COMPLETE |
-| **M9** | Polish, Security Audit & Testing | Day 20–23 |
+| **M9** | Polish, Security Audit & Testing | ✅ COMPLETE |
 | **M10** | Build & Release (APK + EXE) | Day 23–25 |
 
 ---
