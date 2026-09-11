@@ -22,8 +22,7 @@
       "permissions": [
         "USE_BIOMETRIC",
         "USE_FINGERPRINT",
-        "CAMERA",
-        "BIND_AUTOFILL_SERVICE"
+        "CAMERA"
       ],
       "predictiveBackGestureEnabled": false
     },
