@@ -7,3 +7,4 @@ export * from './vault/vaultManager';
 export * from './vault/session';
 export * from './vault/storage';
 export * from './crypto/passkeys';
+export * from './vault/vaultAudit';
