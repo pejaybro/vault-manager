@@ -4,12 +4,7 @@
 // NOTE: Uses Web Crypto API (available in RN via polyfill + desktop natively)
 // ============================================================
 
-import { StorageAdapter } from '../vault/storage';
-
-const ARGON2_MEMORY = 65536;   // 64 MB
-const ARGON2_ITERATIONS = 3;
-const ARGON2_PARALLELISM = 1;
-const KEY_LENGTH = 32;          // 256 bits
+// Key derivation using Web Crypto API PBKDF2 (Argon2id compatible interface)
 
 /**
  * Generate a cryptographically random salt (16 bytes)

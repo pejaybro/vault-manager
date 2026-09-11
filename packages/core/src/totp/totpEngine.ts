@@ -3,7 +3,7 @@
 // Generates time-based one-time passwords (like Google Authenticator)
 // ============================================================
 
-import { totp, hotp } from 'otplib';
+import { totp } from 'otplib';
 import type { TOTPData } from '../models';
 
 /**

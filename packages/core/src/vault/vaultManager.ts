@@ -7,11 +7,10 @@ import { customAlphabet } from 'nanoid';
 import {
   Vault,
   VaultEntry,
-  VaultMeta,
   EncryptedVaultFile,
   EntryType,
 } from '../models';
-import { generateSalt, deriveKey, uint8ToBase64, base64ToUint8 } from '../crypto/keyDerivation';
+import { generateSalt, deriveKey, base64ToUint8 } from '../crypto/keyDerivation';
 import { encryptVault, decryptVault } from '../crypto/encryption';
 import type { StorageAdapter } from './storage';
 import { STORAGE_KEYS } from './storage';
