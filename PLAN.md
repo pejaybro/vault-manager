@@ -20,6 +20,12 @@
 | **M8** | Desktop App (Tauri + React) | ✅ COMPLETE |
 | **M9** | Polish, Security Audit & Testing | ✅ COMPLETE |
 | **M10** | Build & Release (APK + EXE) | ✅ COMPLETE |
+| **M11** | Android Native System Autofill Service | ⏳ IN PROGRESS |
+| **M12** | Cross-Browser Extension (Chrome, Edge, Firefox, Brave, Safari) | 📅 PLANNED |
+| **M13** | Global Desktop Auto-Type Hotkey (`Ctrl + Shift + L`) | 📅 PLANNED |
+| **M14** | FIDO2 / WebAuthn Passkeys & Digital Sign-In Keys | 📅 PLANNED |
+| **M15** | Password Security Audit & Health Dashboard | 📅 PLANNED |
+| **M16** | Duress PIN / Decoy Mode & Automated Local Backup Scheduler | 📅 PLANNED |
 
 ---
 
@@ -498,4 +504,107 @@
 
 ---
 
-*PLAN.md updated and fully checked off — Vault Manager v1.0.0*
+---
+
+## 🏁 MILESTONE 11 — Android Native System Autofill Service
+> **Goal**: Register Vault Manager as an OS-level Autofill Service on Android so it auto-fills credentials inside apps and mobile browsers.
+
+### Task 11.1 — Android Manifest Autofill Service Config
+
+#### Micro-tasks:
+- [ ] Configure `app.json` Android plugins & permissions for `android.permission.BIND_AUTOFILL_SERVICE`
+- [ ] Implement native Android Autofill Service intent filter & service class handler
+- [ ] Create `apps/mobile/modules/autofill/AutofillModule.ts`
+
+### Task 11.2 — In-App & Browser Detection & Credential Matching
+
+#### Micro-tasks:
+- [ ] Query active vault entries matching target package name / web domain
+- [ ] Trigger Fingerprint / Face ID biometric prompt before providing autofill dataset
+- [ ] Return AutofillDataset to Android OS framework
+
+---
+
+---
+
+## 🏁 MILESTONE 12 — Cross-Browser Extension (Chrome, Edge, Firefox, Brave, Safari)
+> **Goal**: Build a Manifest V3 web extension for 1-click web login on PC.
+
+### Task 12.1 — Extension Package Scaffold
+
+#### Micro-tasks:
+- [ ] Create `apps/extension/package.json` & `manifest.json` (Manifest V3 format compatible with Chrome, Edge, Firefox, Brave, Safari)
+- [ ] Configure TypeScript & build pipeline
+
+### Task 12.2 — Extension Content Script & Background Service Worker
+
+#### Micro-tasks:
+- [ ] Create `apps/extension/src/content.ts`: detect `<input type="password">`, render Vault inline icon button, auto-fill username, password & 6-digit 2FA code
+- [ ] Create `apps/extension/src/background.ts`: local WebSocket bridge to Desktop Vault Manager (`ws://localhost:15423`)
+
+### Task 12.3 — Extension Toolbar Popup UI
+
+#### Micro-tasks:
+- [ ] Create `apps/extension/src/popup/` React UI: vault quick search, password generator, copy buttons
+
+---
+
+---
+
+## 🏁 MILESTONE 13 — Global Desktop Auto-Type Hotkey (`Ctrl + Shift + L`)
+> **Goal**: Provide instant global hotkey auto-fill for Windows desktop apps (Discord, Steam, VS Code, Slack, Terminal).
+
+### Task 13.1 — Tauri Global Shortcut Integration
+
+#### Micro-tasks:
+- [ ] Register `Ctrl + Shift + L` global shortcut via `@tauri-apps/plugin-global-shortcut`
+- [ ] Implement quick search overlay window in Tauri desktop app
+- [ ] Implement auto-typing into active window
+
+---
+
+---
+
+## 🏁 MILESTONE 14 — FIDO2 / WebAuthn Passkeys & Digital Sign-In Keys
+> **Goal**: Passwordless digital sign-in keypair management (`Ed25519` / `ECDSA P-256`).
+
+### Task 14.1 — Passkey Cryptographic Engine
+
+#### Micro-tasks:
+- [ ] Implement `generatePasskeyPair()` & `signChallenge()` in `@vault/core`
+- [ ] Build WebAuthn credential manager UI in Mobile & Desktop apps
+
+---
+
+---
+
+## 🏁 MILESTONE 15 — Password Security Audit & Health Dashboard
+> **Goal**: Vault security analytics & health dashboard.
+
+### Task 15.1 — Vault Security Analyzer
+
+#### Micro-tasks:
+- [ ] Calculate vault security score (0 - 100%)
+- [ ] Highlight weak, duplicate/reused, or missing 2FA passwords
+
+---
+
+---
+
+## 🏁 MILESTONE 16 — Duress PIN / Decoy Mode & Automated Backup Scheduler
+> **Goal**: Duress protection & automatic local backup scheduler.
+
+### Task 16.1 — Duress PIN & Decoy Vault
+
+#### Micro-tasks:
+- [ ] Add secondary Duress PIN config in Settings
+- [ ] Unlocking with Duress PIN loads a clean fake vault
+
+### Task 16.2 — Automated Local Backup Scheduler
+
+#### Micro-tasks:
+- [ ] Save encrypted timestamped `.vault` backup file on vault mutation
+
+---
+
+*PLAN.md updated with Milestones M11 - M16 — Vault Manager v1.0.0*
