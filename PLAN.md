@@ -23,7 +23,7 @@
 | **M11** | Android Native System Autofill Service | ✅ COMPLETE |
 | **M12** | Cross-Browser Extension (Chrome, Edge, Firefox, Brave, Safari) | ✅ COMPLETE |
 | **M13** | Global Desktop Auto-Type Hotkey (`Ctrl + Shift + L`) | ✅ COMPLETE |
-| **M14** | FIDO2 / WebAuthn Passkeys & Digital Sign-In Keys | 📅 PLANNED |
+| **M14** | FIDO2 / WebAuthn Passkeys & Digital Sign-In Keys | ✅ COMPLETE |
 | **M15** | Password Security Audit & Health Dashboard | 📅 PLANNED |
 | **M16** | Duress PIN / Decoy Mode & Automated Local Backup Scheduler | 📅 PLANNED |
 
