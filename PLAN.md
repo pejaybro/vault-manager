@@ -69,86 +69,50 @@
 
 ## 🏁 MILESTONE 1 — Project Scaffold & Architecture
 > **Goal**: Create the monorepo structure with shared logic between mobile and desktop.
+> ✅ **COMPLETE** — Committed to GitHub: `feat(M1): project scaffold and monorepo architecture`
 
 ### Task 1.1 — Create Monorepo Structure
 
 #### Micro-tasks:
-- [ ] Initialize workspace at `C:\1.CODE\vault-manager`
-- [ ] Create `pnpm-workspace.yaml` for monorepo
-- [ ] Create root `package.json`
-- [ ] Create folder structure:
-  ```
-  vault-manager/
-  ├── apps/
-  │   ├── mobile/          ← React Native + Expo
-  │   └── desktop/         ← Tauri + React
-  ├── packages/
-  │   ├── core/            ← Shared business logic (crypto, vault, totp)
-  │   └── ui/              ← Shared UI components
-  ├── PLAN.md
-  ├── REQUIREMENTS.md
-  └── README.md
-  ```
+- [x] Initialize workspace at `C:\1.CODE\vault-manager`
+- [x] Create `pnpm-workspace.yaml` for monorepo
+- [x] Create root `package.json`
+- [x] Create full folder structure (apps/mobile, apps/desktop, packages/core, packages/ui)
 
 ### Task 1.2 — Initialize Mobile App
 
 #### Micro-tasks:
-- [ ] Run `npx create-expo-app apps/mobile --template blank-typescript`
-- [ ] Install navigation: `expo-router`
-- [ ] Install UI library: `react-native-paper` or `nativewind` (Tailwind for RN)
-- [ ] Set up folder structure inside mobile:
-  ```
-  apps/mobile/
-  ├── app/                 ← expo-router screens
-  │   ├── (auth)/          ← login/setup screens
-  │   ├── (tabs)/          ← main tabs
-  │   └── _layout.tsx
-  ├── components/
-  ├── hooks/
-  └── constants/
-  ```
+- [x] Run `npx create-expo-app@latest apps/mobile --template blank-typescript`
+- [x] Linked `@vault/core` workspace package
+- [x] Created folder structure (app/(auth), app/(tabs), components, hooks, storage, constants)
 
 ### Task 1.3 — Initialize Desktop App
 
 #### Micro-tasks:
-- [ ] Run `pnpm create tauri-app apps/desktop`
-  - Frontend: React
-  - Language: TypeScript
-  - Package manager: pnpm
-- [ ] Set up folder structure inside desktop:
-  ```
-  apps/desktop/
-  ├── src/                 ← React frontend
-  │   ├── pages/
-  │   ├── components/
-  │   └── main.tsx
-  └── src-tauri/           ← Rust backend (don't touch)
-      └── tauri.conf.json
-  ```
+- [x] Run `npm create tauri-app@latest desktop -- --template react-ts --manager pnpm`
+- [x] Tauri 2 + React + TypeScript scaffold created
+- [x] Linked `@vault/core` workspace package
 
 ### Task 1.4 — Initialize Shared Core Package
 
 #### Micro-tasks:
-- [ ] Create `packages/core/package.json`
-- [ ] Set up TypeScript config
-- [ ] Create folder structure:
-  ```
-  packages/core/
-  ├── src/
-  │   ├── crypto/          ← encryption/decryption
-  │   ├── totp/            ← TOTP generator
-  │   ├── vault/           ← vault read/write/schema
-  │   └── models/          ← TypeScript interfaces
-  └── index.ts
-  ```
-- [ ] Link core package to both apps
+- [x] Created `packages/core/package.json` (`@vault/core`)
+- [x] Set up TypeScript config (`tsconfig.json`)
+- [x] Created `src/models/index.ts` — all TypeScript interfaces (Vault, VaultEntry, PasswordData, TOTPData, KeyData, NoteData)
+- [x] Created `src/crypto/keyDerivation.ts` — PBKDF2 key derivation (Argon2id upgrade in M2)
+- [x] Created `src/crypto/encryption.ts` — AES-256-GCM encrypt/decrypt
+- [x] Created `src/totp/totpEngine.ts` — RFC 6238 TOTP engine (otplib)
+- [x] Created `src/vault/vaultManager.ts` — full CRUD + merge logic
+- [x] Created `src/vault/session.ts` — in-memory session manager
+- [x] Created `src/vault/storage.ts` — abstract StorageAdapter interface
+- [x] Linked core package to both apps
 
 ### Task 1.5 — Git Setup
 
 #### Micro-tasks:
-- [ ] Run `git init` in root
-- [ ] Create `.gitignore` (node_modules, .expo, dist, src-tauri/target)
-- [ ] Create initial commit: "chore: project scaffold"
+- [x] `.gitignore` created (node_modules, .expo, dist, src-tauri/target)
+- [x] `README.md` created
+- [x] Initial commit pushed to `github.com:pejaybro/vault-manager.git`
 
 ---
 

@@ -33,9 +33,12 @@ export function getProgress(period = 30): number {
  * Validate a Base32 TOTP secret
  */
 export function validateSecret(secret: string): boolean {
+  if (!secret || typeof secret !== 'string') return false;
+  const cleanSecret = secret.replace(/\s+/g, '').toUpperCase();
+  if (!/^[A-Z2-7=]+$/.test(cleanSecret)) return false;
   try {
     totp.options = { step: 30 };
-    totp.generate(secret);
+    totp.generate(cleanSecret);
     return true;
   } catch {
     return false;
