@@ -42,9 +42,9 @@ export async function decrypt(
   const decoder = new TextDecoder();
 
   const plainBuffer = await crypto.subtle.decrypt(
-    { name: 'AES-GCM', iv: base64ToUint8(iv) },
+    { name: 'AES-GCM', iv: base64ToUint8(iv) as any },
     key,
-    base64ToUint8(encryptedData)
+    base64ToUint8(encryptedData) as any
   );
 
   return decoder.decode(plainBuffer);

@@ -4,7 +4,7 @@
 // NOTE: Uses Web Crypto API (available in RN via polyfill + desktop natively)
 // ============================================================
 
-import { StorageAdapter } from '../models';
+import { StorageAdapter } from '../vault/storage';
 
 const ARGON2_MEMORY = 65536;   // 64 MB
 const ARGON2_ITERATIONS = 3;
@@ -44,7 +44,7 @@ export async function deriveKey(
   return crypto.subtle.deriveKey(
     {
       name: 'PBKDF2',
-      salt,
+      salt: salt as any,
       iterations: 310_000,  // OWASP recommended for PBKDF2-SHA256
       hash: 'SHA-256',
     },
