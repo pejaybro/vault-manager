@@ -5,10 +5,13 @@
   "scripts": {
     "mobile": "pnpm --filter mobile start",
     "desktop": "pnpm --filter desktop dev",
-    "build:mobile": "pnpm --filter mobile build",
-    "build:desktop": "pnpm --filter desktop build",
     "test": "pnpm --filter @vault/core test",
-    "lint": "pnpm -r lint"
+    "typecheck": "pnpm -r exec tsc --noEmit",
+    "build:mobile:android": "cd apps/mobile && eas build --platform android --profile preview",
+    "build:mobile:ios": "cd apps/mobile && eas build --platform ios --profile preview",
+    "build:desktop:windows": "cd apps/desktop && pnpm tauri build",
+    "build:desktop:macos": "cd apps/desktop && pnpm tauri build --target x86_64-apple-darwin",
+    "build:extension": "pnpm --filter @vault/extension typecheck"
   },
   "devDependencies": {
     "typescript": "^5.5.0"
