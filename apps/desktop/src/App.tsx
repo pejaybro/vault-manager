@@ -1,6 +1,8 @@
+import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
-import { KeyRound, ShieldCheck, Key, RefreshCw, Settings, Lock } from 'lucide-react';
+import { KeyRound, ShieldCheck, Key, RefreshCw, Settings, Lock, Search } from 'lucide-react';
 import { DesktopVaultProvider, useDesktopVault } from './context/DesktopVaultContext';
+import { QuickSearchOverlay } from './components/QuickSearchOverlay';
 import { SetupPage } from './pages/Setup';
 import { UnlockPage } from './pages/Unlock';
 import { PasswordsPage } from './pages/Passwords';
@@ -12,6 +14,18 @@ import './App.css';
 
 function DesktopAppShell() {
   const { isUnlocked, vaultExists, isLoading, lock } = useDesktopVault();
+  const [showQuickSearch, setShowQuickSearch] = useState(false);
+
+  useEffect(() => {
+    const handleGlobalKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'l') {
+        e.preventDefault();
+        setShowQuickSearch((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKey);
+    return () => window.removeEventListener('keydown', handleGlobalKey);
+  }, []);
 
   if (isLoading) {
     return (
@@ -60,11 +74,35 @@ function DesktopAppShell() {
           </nav>
 
           <div className="sidebar-footer">
+            <button
+              onClick={() => setShowQuickSearch(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                width: '100%',
+                padding: 10,
+                borderRadius: 8,
+                background: 'var(--card-color)',
+                border: '1px solid var(--surface-border)',
+                color: 'var(--text-color)',
+                fontWeight: 600,
+                fontSize: 13,
+                cursor: 'pointer',
+                marginBottom: 8,
+              }}
+            >
+              <Search size={16} color="var(--primary-color)" /> Quick Fill (Ctrl+Shift+L)
+            </button>
+
             <button className="lock-btn" onClick={lock}>
               <Lock size={16} /> Lock Vault
             </button>
           </div>
         </aside>
+
+        {/* Quick Search Overlay */}
+        <QuickSearchOverlay isOpen={showQuickSearch} onClose={() => setShowQuickSearch(false)} />
 
         {/* Main View Area */}
         <main className="main-content">
