@@ -126,7 +126,7 @@ public class AutofillService extends android.service.autofill.AutofillService {
         fs.writeFileSync(propertiesPath, content, 'utf8');
       }
 
-      // Set AGP 8.8.2 and Gradle wrapper 8.10.2 for React Native 0.87 compatibility
+      // Set AGP 8.8.2 and pin SDK 34 for React Native 0.87 & Gradle 8.10.2 compatibility
       const buildGradlePath = path.join(projectRoot, 'android', 'build.gradle');
       if (fs.existsSync(buildGradlePath)) {
         let bgContent = fs.readFileSync(buildGradlePath, 'utf8');
@@ -134,6 +134,16 @@ public class AutofillService extends android.service.autofill.AutofillService {
           /classpath\(['"]com\.android\.tools\.build:gradle.*['"]\)/g,
           "classpath('com.android.tools.build:gradle:8.8.2')"
         );
+        if (!bgContent.includes('compileSdkVersion = 34')) {
+          bgContent = `buildscript {
+  ext {
+    buildToolsVersion = "34.0.0"
+    minSdkVersion = 24
+    compileSdkVersion = 34
+    targetSdkVersion = 34
+  }
+}\n\n` + bgContent;
+        }
         fs.writeFileSync(buildGradlePath, bgContent, 'utf8');
       }
 

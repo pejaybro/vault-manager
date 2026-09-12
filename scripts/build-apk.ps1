@@ -1,44 +1,59 @@
 $ErrorActionPreference = 'Stop'
+$root   = "C:\1.CODE\vault-manager"
+$mobile = "$root\apps\mobile"
+$android = "$mobile\android"
+$destFile = "$root\dist\VaultManager.apk"
 
+# Set JAVA_HOME if not already set
 if (-not $env:JAVA_HOME -and (Test-Path 'C:\Program Files\Android\Android Studio\jbr')) {
     $env:JAVA_HOME = 'C:\Program Files\Android\Android Studio\jbr'
     $env:Path = "$env:JAVA_HOME\bin;$env:Path"
 }
 
-Write-Host "[1/4] Stopping background Java/Gradle daemons..."
+# Kill stale Gradle daemons
 Stop-Process -Name java -Force -ErrorAction SilentlyContinue
+Start-Sleep -Seconds 2
 
-Write-Host "[2/4] Generating native Android files..."
-Set-Location "C:\1.CODE\vault-manager\apps\mobile"
-npx expo prebuild --platform android --no-install
+# Step 1: Run prebuild only if android directory is missing
+Set-Location $mobile
+if (-not (Test-Path "$android\build.gradle")) {
+    Write-Host "[1/3] Running expo prebuild..."
+    npx expo prebuild --platform android --no-install
+} else {
+    Write-Host "[1/3] Using existing native Android files (skipping prebuild)..."
+}
 
-Write-Host "[3/4] Compiling release APK with Gradle..."
-Set-Location "C:\1.CODE\vault-manager\apps\mobile\android"
+# Step 2: Gradle assemble
+Write-Host "[2/3] Building release APK with Gradle..."
+Set-Location $android
 .\gradlew.bat assembleRelease
-
-$searchDir = "C:\1.CODE\vault-manager\apps\mobile\android\app\build\outputs"
-if (-not (Test-Path $searchDir)) {
-    Set-Location "C:\1.CODE\vault-manager"
-    throw "Gradle build failed to produce outputs directory at $searchDir. Check Gradle errors above."
+if ($LASTEXITCODE -ne 0) {
+    Set-Location $root
+    throw "Gradle build FAILED with exit code $LASTEXITCODE"
 }
 
-$apkFile = Get-ChildItem $searchDir -Recurse -Filter "*.apk" | Select-Object -First 1 -ExpandProperty FullName
-if (-not $apkFile) {
-    Set-Location "C:\1.CODE\vault-manager"
-    throw "Build failed: No .apk file generated in $searchDir"
+# Step 3: Copy APK immediately
+Write-Host "[3/3] Copying APK to dist folder..."
+$apkSrc = "$android\app\build\outputs\apk\release\app-release.apk"
+if (-not (Test-Path $apkSrc)) {
+    # Fallback: search anywhere
+    $found = Get-ChildItem "$android\app\build\outputs" -Recurse -Filter "*.apk" -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($found) { $apkSrc = $found.FullName }
+    else {
+        Set-Location $root
+        throw "APK not found after successful build! Searched: $android\app\build\outputs"
+    }
 }
 
-Write-Host "Found APK at: $apkFile"
+New-Item -ItemType Directory -Force -Path "$root\dist" | Out-Null
+Copy-Item -LiteralPath $apkSrc -Destination $destFile -Force
 
-$destDir = "C:\1.CODE\vault-manager\dist"
-New-Item -ItemType Directory -Force -Path $destDir | Out-Null
-$destFile = "$destDir\VaultManager.apk"
-Copy-Item -Path $apkFile -Destination $destFile -Force
+Set-Location $root
 
-Set-Location "C:\1.CODE\vault-manager"
-
+$sizeMB = [math]::Round((Get-Item $destFile).Length / 1MB, 1)
 Write-Host ""
 Write-Host "=========================================================="
-Write-Host " SUCCESS! Local APK built successfully."
-Write-Host " Output File: $destFile"
+Write-Host " BUILD SUCCESSFUL"
+Write-Host " APK : $destFile"
+Write-Host " Size: $sizeMB MB"
 Write-Host "=========================================================="
