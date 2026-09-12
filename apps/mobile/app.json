@@ -7,6 +7,15 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
+    "splash": {
+      "backgroundColor": "#0F0F12",
+      "resizeMode": "contain",
+      "image": "./assets/icon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-splash-screen"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.vaultmanager.app",
