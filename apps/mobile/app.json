@@ -14,7 +14,8 @@
     },
     "plugins": [
       "expo-router",
-      "expo-splash-screen"
+      "expo-splash-screen",
+      "./plugins/withAndroidAutofillService"
     ],
     "ios": {
       "supportsTablet": true,
@@ -40,6 +41,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "b2768596-3e98-4816-8a42-278894ba6a76"
+      }
     }
   }
 }

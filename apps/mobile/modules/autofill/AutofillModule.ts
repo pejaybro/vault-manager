@@ -1,4 +1,5 @@
 import { Platform, Linking } from 'react-native';
+import * as IntentLauncher from 'expo-intent-launcher';
 import { Vault, PasswordData, getEntriesByType } from '@vault/core';
 
 export interface AutofillMatch {
@@ -10,11 +11,24 @@ export interface AutofillMatch {
 
 export class AutofillModule {
   /**
-   * Open Android System Settings for Autofill Service
+   * Open Android System Settings directly for Autofill Service Selection
    */
-  static openAutofillSettings(): void {
+  static async openAutofillSettings(): Promise<void> {
     if (Platform.OS === 'android') {
-      Linking.openSettings();
+      try {
+        // Try launching Android's direct Autofill Service selection prompt
+        await IntentLauncher.startActivityAsync('android.settings.REQUEST_SET_AUTOFILL_SERVICE', {
+          data: 'package:com.vaultmanager.app',
+        });
+      } catch {
+        try {
+          // Fallback to general OS Autofill settings screen (Samsung / Android 8.0+)
+          await IntentLauncher.startActivityAsync('android.settings.AUTOFILL_SETTINGS');
+        } catch {
+          // Fallback to app settings
+          Linking.openSettings();
+        }
+      }
     }
   }
 

@@ -129,11 +129,23 @@ export default function SettingsScreen() {
             </View>
           )}
 
-          {/* Android only — System Autofill */}
+          {/* Autofill Provider Row */}
           {Platform.OS === 'android' && (
             <TouchableOpacity
               style={styles.row}
-              onPress={() => AutofillModule.openAutofillSettings()}
+              onPress={() => {
+                Alert.alert(
+                  'Set Vault Manager as Default Autofill',
+                  'To auto-fill passwords inside apps (Instagram, Netflix, Banking) and Chrome:\n\n1. Tap "Open Settings" below.\n2. Select "Vault Manager" under Preferred Service / Autofill Service.\n3. Tap OK to confirm.',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                      text: 'Open Settings',
+                      onPress: () => AutofillModule.openAutofillSettings(),
+                    },
+                  ]
+                );
+              }}
               activeOpacity={0.7}
             >
               <View style={styles.rowLeft}>

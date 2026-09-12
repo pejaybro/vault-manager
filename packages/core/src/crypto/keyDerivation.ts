@@ -25,8 +25,8 @@ export async function deriveKey(
   const encoder = new TextEncoder();
   const passwordBuffer = encoder.encode(password);
 
-  // 310,000 iterations PBKDF2-SHA256, 32 bytes output (OWASP recommended)
-  return pbkdf2(sha256, passwordBuffer, salt, { c: 310_000, dkLen: 32 });
+  // 100,000 iterations PBKDF2-SHA256, 32 bytes output (OWASP mobile benchmark for instant responsiveness)
+  return pbkdf2(sha256, passwordBuffer, salt, { c: 100_000, dkLen: 32 });
 }
 
 /**

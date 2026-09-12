@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ShieldCheck, Lock, CheckCircle2 } from 'lucide-react-native';
 import { useVault } from '../../context/VaultContext';
@@ -14,6 +14,7 @@ export default function SetupScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
 
   const minLength = password.length >= 8;
   const hasUpper = /[A-Z]/.test(password);
@@ -34,11 +35,13 @@ export default function SetupScreen() {
       return;
     }
 
+    setIsCreating(true);
     try {
       await createVault(password);
       router.replace('/(tabs)/passwords');
     } catch (err: any) {
       Alert.alert('Error', err.message || 'Failed to create vault');
+      setIsCreating(false);
     }
   };
 
@@ -94,9 +97,19 @@ export default function SetupScreen() {
           </View>
         </View>
 
-        <TouchableOpacity style={styles.createBtn} onPress={handleCreate}>
-          <Lock size={20} color="#FFF" />
-          <Text style={styles.createBtnText}>Create Encrypted Vault</Text>
+        <TouchableOpacity
+          style={[styles.createBtn, isCreating && { opacity: 0.6 }]}
+          onPress={handleCreate}
+          disabled={isCreating}
+        >
+          {isCreating ? (
+            <ActivityIndicator size="small" color="#FFF" />
+          ) : (
+            <Lock size={20} color="#FFF" />
+          )}
+          <Text style={styles.createBtnText}>
+            {isCreating ? 'Encrypting & Creating Vault...' : 'Create Encrypted Vault'}
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
