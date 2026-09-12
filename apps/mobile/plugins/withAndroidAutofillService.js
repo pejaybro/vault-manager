@@ -105,6 +105,29 @@ public class AutofillService extends android.service.autofill.AutofillService {
     },
   ]);
 
+  // 3. Update gradle-wrapper.properties to Gradle 9.4.1 minimum version
+  config = withDangerousMod(config, [
+    'android',
+    async (config) => {
+      const projectRoot = config.modRequest.projectRoot;
+      const propertiesPath = path.join(
+        projectRoot,
+        'android',
+        'gradle',
+        'wrapper',
+        'gradle-wrapper.properties'
+      );
+
+      if (fs.existsSync(propertiesPath)) {
+        let content = fs.readFileSync(propertiesPath, 'utf8');
+        content = content.replace(/gradle-9\.3\.1-bin\.zip/g, 'gradle-9.4.1-bin.zip');
+        fs.writeFileSync(propertiesPath, content, 'utf8');
+      }
+
+      return config;
+    },
+  ]);
+
   return config;
 }
 
