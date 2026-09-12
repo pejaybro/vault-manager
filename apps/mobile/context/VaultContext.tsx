@@ -103,9 +103,8 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const createVault = async (password: string) => {
     setError(null);
     try {
-      const { encryptedFile, key, salt } = await createVaultCore(password);
+      const { encryptedFile, key, salt, vault: openedVault } = await createVaultCore(password);
       await mobileStorage.write(STORAGE_KEYS.VAULT, JSON.stringify(encryptedFile));
-      const { vault: openedVault } = await openVaultCore(encryptedFile, password);
       setVault(openedVault);
       setCurrentKey(key);
       setCurrentSalt(salt);
