@@ -105,7 +105,7 @@ public class AutofillService extends android.service.autofill.AutofillService {
     },
   ]);
 
-  // 3. Update gradle-wrapper.properties to Gradle 9.4.1 minimum version
+  // 3. Update gradle-wrapper.properties to Gradle 8.13 for Expo Kotlin compiler compatibility
   config = withDangerousMod(config, [
     'android',
     async (config) => {
@@ -120,7 +120,8 @@ public class AutofillService extends android.service.autofill.AutofillService {
 
       if (fs.existsSync(propertiesPath)) {
         let content = fs.readFileSync(propertiesPath, 'utf8');
-        content = content.replace(/gradle-9\.3\.1-bin\.zip/g, 'gradle-9.4.1-bin.zip');
+        content = content.replace(/gradle-.*-bin\.zip/g, 'gradle-8.13-all.zip');
+        content = content.replace(/gradle-.*-all\.zip/g, 'gradle-8.13-all.zip');
         fs.writeFileSync(propertiesPath, content, 'utf8');
       }
 
