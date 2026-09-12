@@ -10,9 +10,9 @@ export interface StorageAdapter {
   exists(key: string): Promise<boolean>;
 }
 
-// Storage keys used across the app
+// Storage keys used across the app (alphanumeric and underscores for SecureStore/FileSystem compatibility)
 export const STORAGE_KEYS = {
-  VAULT: 'vault_manager:vault',
-  CONFIG: 'vault_manager:config',
-  BIOMETRIC_HINT: 'vault_manager:bio_hint',
+  VAULT: 'vault_manager_vault',
+  CONFIG: 'vault_manager_config',
+  BIOMETRIC_HINT: 'vault_manager_bio_hint',
 } as const;

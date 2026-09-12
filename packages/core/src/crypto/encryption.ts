@@ -1,19 +1,19 @@
 // ============================================================
 // ENCRYPTION — AES-256-GCM
-// Encrypts and decrypts vault data using Web Crypto API
+// Encrypts and decrypts vault data using pure JavaScript @noble/ciphers & @noble/hashes
 // ============================================================
 
+import { gcm } from '@noble/ciphers/aes.js';
+import { sha256 as nobleSha256 } from '@noble/hashes/sha2.js';
+import { randomBytes } from '@noble/hashes/utils.js';
 import { EncryptedVaultFile, Vault } from '../models';
 import { uint8ToBase64, base64ToUint8 } from './keyDerivation';
 
 const IV_LENGTH = 12; // 96 bits for AES-GCM
 
-function getCrypto(): Crypto {
-  const c = (typeof globalThis !== 'undefined' && globalThis.crypto) ||
-            (typeof window !== 'undefined' && window.crypto) ||
-            (typeof globalThis !== 'undefined' && (globalThis as any).crypto);
-  if (!c) throw new Error('Web Crypto API is unavailable. Polyfill required.');
-  return c;
+function toUint8(k: Uint8Array | CryptoKey): Uint8Array {
+  if (k instanceof Uint8Array) return k;
+  return new Uint8Array(k as any);
 }
 
 /**
@@ -21,21 +21,17 @@ function getCrypto(): Crypto {
  */
 export async function encrypt(
   plaintext: string,
-  key: CryptoKey
+  key: Uint8Array | CryptoKey
 ): Promise<{ iv: string; data: string }> {
   const encoder = new TextEncoder();
-  const iv = new Uint8Array(IV_LENGTH);
-  getCrypto().getRandomValues(iv);
-
-  const cipherBuffer = await getCrypto().subtle.encrypt(
-    { name: 'AES-GCM', iv },
-    key,
-    encoder.encode(plaintext)
-  );
+  const iv = randomBytes(IV_LENGTH);
+  const keyBytes = toUint8(key);
+  const cipher = gcm(keyBytes, iv);
+  const cipherBytes = cipher.encrypt(encoder.encode(plaintext));
 
   return {
     iv: uint8ToBase64(iv),
-    data: uint8ToBase64(new Uint8Array(cipherBuffer)),
+    data: uint8ToBase64(cipherBytes),
   };
 }
 
@@ -45,17 +41,16 @@ export async function encrypt(
 export async function decrypt(
   encryptedData: string,
   iv: string,
-  key: CryptoKey
+  key: Uint8Array | CryptoKey
 ): Promise<string> {
   const decoder = new TextDecoder();
+  const keyBytes = toUint8(key);
+  const ivBytes = base64ToUint8(iv);
+  const dataBytes = base64ToUint8(encryptedData);
+  const cipher = gcm(keyBytes, ivBytes);
+  const plainBytes = cipher.decrypt(dataBytes);
 
-  const plainBuffer = await getCrypto().subtle.decrypt(
-    { name: 'AES-GCM', iv: base64ToUint8(iv) as any },
-    key,
-    base64ToUint8(encryptedData) as any
-  );
-
-  return decoder.decode(plainBuffer);
+  return decoder.decode(plainBytes);
 }
 
 /**
@@ -63,7 +58,7 @@ export async function decrypt(
  */
 export async function encryptVault(
   vault: Vault,
-  key: CryptoKey,
+  key: Uint8Array | CryptoKey,
   salt: Uint8Array
 ): Promise<EncryptedVaultFile> {
   const { iv, data } = await encrypt(JSON.stringify(vault), key);
@@ -80,7 +75,7 @@ export async function encryptVault(
  */
 export async function decryptVault(
   file: EncryptedVaultFile,
-  key: CryptoKey
+  key: Uint8Array | CryptoKey
 ): Promise<Vault> {
   const plaintext = await decrypt(file.data, file.iv, key);
   return JSON.parse(plaintext) as Vault;
@@ -91,6 +86,6 @@ export async function decryptVault(
  */
 export async function sha256(input: string): Promise<string> {
   const encoder = new TextEncoder();
-  const hashBuffer = await getCrypto().subtle.digest('SHA-256', encoder.encode(input));
-  return uint8ToBase64(new Uint8Array(hashBuffer));
+  const hash = nobleSha256(encoder.encode(input));
+  return uint8ToBase64(hash);
 }

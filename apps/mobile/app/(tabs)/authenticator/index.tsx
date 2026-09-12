@@ -9,6 +9,7 @@ import { getEntriesByType, TOTPData, VaultEntry } from '@vault/core';
 import { useTOTP } from '../../../hooks/useTOTP';
 import { SearchBar } from '../../../components/SearchBar';
 import { EmptyState } from '../../../components/EmptyState';
+import { AppHeader } from '../../../components/AppHeader';
 import { COLORS, RADII, SPACING } from '../../../constants/theme';
 
 const TOTPCard: React.FC<{ entry: VaultEntry; onPress: () => void }> = ({ entry, onPress }) => {
@@ -76,35 +77,34 @@ export default function AuthenticatorScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Authenticator (TOTP)</Text>
-        <Text style={styles.countBadge}>{totpEntries.length} accounts</Text>
+      <AppHeader title="2FA Authenticator" countBadge={totpEntries.length} />
+
+      <View style={styles.body}>
+        <SearchBar query={query} onChangeQuery={setQuery} placeholder="Search authenticator accounts..." />
+
+        {filteredEntries.length === 0 ? (
+          <EmptyState
+            title={query ? 'No matching accounts' : 'No 2FA Accounts'}
+            description={
+              query
+                ? 'Try a different search term.'
+                : 'Tap the + button below to scan a QR code or add a secret key.'
+            }
+          />
+        ) : (
+          <FlatList
+            data={filteredEntries}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <TOTPCard
+                entry={item}
+                onPress={() => router.push(`/(tabs)/authenticator/${item.id}` as any)}
+              />
+            )}
+            contentContainerStyle={styles.listContent}
+          />
+        )}
       </View>
-
-      <SearchBar query={query} onChangeQuery={setQuery} placeholder="Search authenticator accounts..." />
-
-      {filteredEntries.length === 0 ? (
-        <EmptyState
-          title={query ? 'No matching accounts' : 'No 2FA Accounts'}
-          description={
-            query
-              ? 'Try a different search term.'
-              : 'Tap the + button below to scan a QR code or add a secret key.'
-          }
-        />
-      ) : (
-        <FlatList
-          data={filteredEntries}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <TOTPCard
-              entry={item}
-              onPress={() => router.push(`/(tabs)/authenticator/${item.id}` as any)}
-            />
-          )}
-          contentContainerStyle={styles.listContent}
-        />
-      )}
 
       <TouchableOpacity
         style={styles.fab}
@@ -120,49 +120,31 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-    paddingHorizontal: SPACING.lg,
-    paddingTop: 50,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    justifyContent: 'space-between',
-    marginBottom: SPACING.xs,
-  },
-  headerTitle: {
-    color: COLORS.text,
-    fontSize: 26,
-    fontWeight: '800',
-  },
-  countBadge: {
-    color: COLORS.textMuted,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  listContent: {
-    paddingBottom: 100,
-    paddingTop: SPACING.xs,
+  body: {
+    flex: 1,
+    paddingHorizontal: SPACING.md,
   },
   card: {
-    backgroundColor: COLORS.card,
+    backgroundColor: COLORS.surface,
     borderRadius: RADII.md,
     padding: SPACING.md,
-    marginVertical: SPACING.xs,
+    marginBottom: SPACING.sm,
     borderWidth: 1,
     borderColor: COLORS.surfaceBorder,
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: SPACING.sm,
+    marginBottom: SPACING.xs,
   },
   iconContainer: {
     width: 36,
     height: 36,
     borderRadius: RADII.sm,
-    backgroundColor: COLORS.surface,
-    alignItems: 'center',
+    backgroundColor: 'rgba(34, 197, 94, 0.12)',
     justifyContent: 'center',
+    alignItems: 'center',
     marginRight: SPACING.sm,
   },
   cardTitleBox: {
@@ -175,30 +157,35 @@ const styles = StyleSheet.create({
   },
   accountText: {
     color: COLORS.textMuted,
-    fontSize: 12,
-    marginTop: 2,
+    fontSize: 13,
   },
   copyBtn: {
-    padding: SPACING.xs,
+    padding: 8,
+    borderRadius: RADII.sm,
+    backgroundColor: COLORS.card,
   },
   codeText: {
     color: COLORS.primary,
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: '800',
-    fontFamily: 'monospace',
-    letterSpacing: 3,
-    marginBottom: SPACING.sm,
+    letterSpacing: 4,
+    marginVertical: SPACING.xs,
+    fontVariant: ['tabular-nums'],
   },
   progressTrack: {
-    width: '100%',
     height: 4,
-    backgroundColor: COLORS.surface,
-    borderRadius: 2,
+    backgroundColor: COLORS.card,
+    borderRadius: RADII.full,
     overflow: 'hidden',
+    marginTop: SPACING.xs,
   },
   progressBar: {
     height: '100%',
-    borderRadius: 2,
+    borderRadius: RADII.full,
+  },
+  listContent: {
+    paddingBottom: 100,
+    paddingTop: SPACING.xs,
   },
   fab: {
     position: 'absolute',

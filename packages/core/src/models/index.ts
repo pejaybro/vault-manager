@@ -21,7 +21,8 @@ export type Category =
   | 'work'
   | 'shopping'
   | 'email'
-  | 'other';
+  | 'other'
+  | (string & {});
 
 export type TOTPAlgorithm = 'SHA1' | 'SHA256' | 'SHA512';
 
@@ -77,6 +78,7 @@ export interface VaultMeta {
   deviceId: string;
   lastModified: number;
   version: number;
+  customCategories?: string[];
 }
 
 export interface Vault {
@@ -100,7 +102,7 @@ export interface EncryptedVaultFile {
 
 export interface VaultSession {
   vault: Vault;
-  key: CryptoKey;
+  key: Uint8Array | CryptoKey;
   lockedAt?: number;
 }
 

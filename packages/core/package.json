@@ -10,6 +10,9 @@
     "lint": "eslint src --ext .ts"
   },
   "dependencies": {
+    "@noble/ciphers": "^2.4.0",
+    "@noble/curves": "^2.4.0",
+    "@noble/hashes": "^2.4.0",
     "nanoid": "^3.3.7",
     "zod": "^3.23.8"
   },

@@ -1,9 +1,12 @@
 // ============================================================
 // TOTP ENGINE — RFC 6238
 // Generates time-based one-time passwords (like Google Authenticator)
-// Pure-JS implementation using Web Crypto API (no Node.js crypto)
+// Pure-JS implementation using @noble/hashes (no Node.js crypto, no Web Crypto requirement)
 // ============================================================
 
+import { hmac } from '@noble/hashes/hmac.js';
+import { sha1 } from '@noble/hashes/legacy.js';
+import { sha256, sha512 } from '@noble/hashes/sha2.js';
 import type { TOTPData } from '../models';
 
 // --- Base32 Decoder (RFC 4648) ---
@@ -30,37 +33,19 @@ function base32Decode(input: string): Uint8Array {
   return new Uint8Array(output);
 }
 
-function getCrypto(): Crypto {
-  const c = (typeof globalThis !== 'undefined' && globalThis.crypto) ||
-            (typeof window !== 'undefined' && window.crypto) ||
-            (typeof globalThis !== 'undefined' && (globalThis as any).crypto);
-  if (!c) throw new Error('Web Crypto API is unavailable. Polyfill required.');
-  return c;
-}
-
-// --- HMAC computation via Web Crypto ---
+// --- HMAC computation via @noble/hashes ---
 
 async function hmacSha(
   algorithm: string,
   key: Uint8Array,
   message: Uint8Array
 ): Promise<Uint8Array> {
-  // Map algorithm names to Web Crypto hash names
-  const hashName =
-    algorithm === 'SHA256' ? 'SHA-256' :
-    algorithm === 'SHA512' ? 'SHA-512' :
-    'SHA-1'; // default SHA1
+  const hashFn =
+    algorithm === 'SHA256' ? sha256 :
+    algorithm === 'SHA512' ? sha512 :
+    sha1; // default SHA1
 
-  const cryptoKey = await getCrypto().subtle.importKey(
-    'raw',
-    key as any,
-    { name: 'HMAC', hash: { name: hashName } },
-    false,
-    ['sign']
-  );
-
-  const signature = await getCrypto().subtle.sign('HMAC', cryptoKey, message as any);
-  return new Uint8Array(signature);
+  return hmac(hashFn, key, message);
 }
 
 // --- HOTP dynamic truncation (RFC 4226 §5.4) ---
@@ -91,7 +76,7 @@ function intToBytes(num: number): Uint8Array {
 // --- Public API ---
 
 /**
- * Generate a TOTP code for a given secret (async — uses Web Crypto)
+ * Generate a TOTP code for a given secret (async — uses @noble/hashes)
  */
 export async function generateTOTP(
   secret: string,
@@ -100,74 +85,82 @@ export async function generateTOTP(
   algorithm = 'SHA1'
 ): Promise<string> {
   const key = base32Decode(secret);
-  const counter = Math.floor(Date.now() / 1000 / period);
+  const epoch = Math.floor(Date.now() / 1000);
+  const counter = Math.floor(epoch / period);
   const counterBytes = intToBytes(counter);
-  const hmac = await hmacSha(algorithm, key, counterBytes);
-  return dynamicTruncate(hmac, digits);
+
+  const hmacResult = await hmacSha(algorithm, key, counterBytes);
+  return dynamicTruncate(hmacResult, digits);
 }
 
 /**
- * Get seconds remaining until the next code rotation
+ * Format TOTP code with a space in the middle for readability (e.g. "123 456" or "1234 5678")
+ */
+export function formatCode(code: string): string {
+  const mid = Math.floor(code.length / 2);
+  return `${code.slice(0, mid)} ${code.slice(mid)}`;
+}
+
+/**
+ * Get seconds remaining in the current TOTP window
  */
 export function getTimeRemaining(period = 30): number {
-  const now = Math.floor(Date.now() / 1000);
-  return period - (now % period);
+  const epoch = Math.floor(Date.now() / 1000);
+  return period - (epoch % period);
 }
 
 /**
- * Get progress from 0 to 1 (1 = fresh code, 0 = about to expire)
+ * Get progress as a fraction from 0 to 1 (for countdown rings)
  */
 export function getProgress(period = 30): number {
   return getTimeRemaining(period) / period;
 }
 
 /**
- * Validate a Base32 TOTP secret
+ * Validate a Base32 secret
  */
-export async function validateSecret(secret: string): Promise<boolean> {
-  if (!secret || typeof secret !== 'string') return false;
-  const cleanSecret = secret.replace(/\s+/g, '').toUpperCase();
-  if (!/^[A-Z2-7=]+$/.test(cleanSecret)) return false;
+export function validateSecret(secret: string): boolean {
   try {
-    await generateTOTP(cleanSecret);
-    return true;
+    const decoded = base32Decode(secret);
+    return decoded.length >= 10; // Minimum 80 bits recommended
   } catch {
     return false;
   }
 }
 
 /**
- * Parse an otpauth:// URI into TOTPData
- * e.g. otpauth://totp/GitHub:user@email.com?secret=ABC&issuer=GitHub
+ * Parse an otpauth:// TOTP URI into TOTPData
+ * e.g. otpauth://totp/GitHub:user@email.com?secret=JBSWY3DPEHPK3PXP&issuer=GitHub
  */
-export function parseTOTPUri(uri: string): Omit<TOTPData, 'id'> | null {
-  try {
-    const url = new URL(uri);
-    if (url.protocol !== 'otpauth:') return null;
-
-    const label = decodeURIComponent(url.pathname.slice(1)); // remove leading /
-    const [issuerFromLabel, account] = label.includes(':')
-      ? label.split(':')
-      : ['', label];
-
-    const params = url.searchParams;
-    const secret = params.get('secret') ?? '';
-    const issuer = params.get('issuer') ?? issuerFromLabel ?? '';
-    const algorithm = (params.get('algorithm') ?? 'SHA1') as TOTPData['algorithm'];
-    const digits = parseInt(params.get('digits') ?? '6', 10) as 6 | 8;
-    const period = parseInt(params.get('period') ?? '30', 10) as 30 | 60;
-
-    return { secret, issuer, account: account.trim(), algorithm, digits, period };
-  } catch {
-    return null;
+export function parseTOTPUri(uri: string): Partial<TOTPData> {
+  const url = new URL(uri);
+  if (url.protocol !== 'otpauth:') {
+    throw new Error('Invalid TOTP URI protocol — must be otpauth://');
   }
-}
+  if (url.host !== 'totp') {
+    throw new Error('Only TOTP (not HOTP) is supported');
+  }
 
-/**
- * Format a 6-digit code as "123 456" for readability
- */
-export function formatCode(code: string): string {
-  if (code.length === 6) return `${code.slice(0, 3)} ${code.slice(3)}`;
-  if (code.length === 8) return `${code.slice(0, 4)} ${code.slice(4)}`;
-  return code;
+  const label = decodeURIComponent(url.pathname.replace(/^\//, ''));
+  const parts = label.split(':');
+  const issuerFromLabel = parts.length > 1 ? parts[0].trim() : '';
+  const account = (parts.length > 1 ? parts[1] : parts[0]).trim();
+
+  const params = url.searchParams;
+  const secret = params.get('secret') || '';
+  const issuer = params.get('issuer') || issuerFromLabel;
+  const algorithm = (params.get('algorithm') || 'SHA1').toUpperCase() as any;
+  const digits = parseInt(params.get('digits') || '6', 10) as 6 | 8;
+  const period = parseInt(params.get('period') || '30', 10) as 30 | 60;
+
+  if (!secret) throw new Error('TOTP URI missing required "secret" parameter');
+
+  return {
+    secret,
+    issuer,
+    account,
+    algorithm,
+    digits,
+    period,
+  };
 }

@@ -7,6 +7,7 @@ import { getEntriesByType, KeyType, KeyData } from '@vault/core';
 import { VaultCard } from '../../../components/VaultCard';
 import { SearchBar } from '../../../components/SearchBar';
 import { EmptyState } from '../../../components/EmptyState';
+import { AppHeader } from '../../../components/AppHeader';
 import { COLORS, RADII, SPACING } from '../../../constants/theme';
 
 const TYPE_FILTERS: { label: string; value: KeyType | 'all' }[] = [
@@ -49,50 +50,49 @@ export default function KeysScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Digital Keys & Notes</Text>
-        <Text style={styles.countBadge}>{keyEntries.length} items</Text>
+      <AppHeader title="Keys & Notes" countBadge={keyEntries.length} />
+
+      <View style={styles.body}>
+        <SearchBar query={query} onChangeQuery={setQuery} placeholder="Search keys, tokens, notes..." />
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.catScroll}>
+          {TYPE_FILTERS.map((t) => (
+            <TouchableOpacity
+              key={t.value}
+              style={[styles.chip, selectedType === t.value && styles.chipActive]}
+              onPress={() => setSelectedType(t.value)}
+            >
+              <Text style={[styles.chipText, selectedType === t.value && styles.chipTextActive]}>
+                {t.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        {filteredEntries.length === 0 ? (
+          <EmptyState
+            title={query ? 'No matching keys' : 'No Keys or Notes Saved'}
+            description={
+              query
+                ? 'Try a different search or filter.'
+                : 'Tap the + button below to securely store API keys, SSH keys, or notes.'
+            }
+          />
+        ) : (
+          <FlatList
+            data={filteredEntries}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <VaultCard
+                entry={item}
+                onPress={() => router.push(`/(tabs)/keys/${item.id}` as any)}
+                onToggleFav={() => toggleFav(item.id)}
+              />
+            )}
+            contentContainerStyle={styles.listContent}
+          />
+        )}
       </View>
-
-      <SearchBar query={query} onChangeQuery={setQuery} placeholder="Search keys, tokens, notes..." />
-
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.catScroll}>
-        {TYPE_FILTERS.map((t) => (
-          <TouchableOpacity
-            key={t.value}
-            style={[styles.chip, selectedType === t.value && styles.chipActive]}
-            onPress={() => setSelectedType(t.value)}
-          >
-            <Text style={[styles.chipText, selectedType === t.value && styles.chipTextActive]}>
-              {t.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      {filteredEntries.length === 0 ? (
-        <EmptyState
-          title={query ? 'No matching keys' : 'No Digital Keys Saved'}
-          description={
-            query
-              ? 'Try a different search or filter.'
-              : 'Tap the + button below to store API keys, SSH keys, or secure notes.'
-          }
-        />
-      ) : (
-        <FlatList
-          data={filteredEntries}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <VaultCard
-              entry={item}
-              onPress={() => router.push(`/(tabs)/keys/${item.id}` as any)}
-              onToggleFav={() => toggleFav(item.id)}
-            />
-          )}
-          contentContainerStyle={styles.listContent}
-        />
-      )}
 
       <TouchableOpacity
         style={styles.fab}
@@ -108,24 +108,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-    paddingHorizontal: SPACING.lg,
-    paddingTop: 50,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    justifyContent: 'space-between',
-    marginBottom: SPACING.xs,
-  },
-  headerTitle: {
-    color: COLORS.text,
-    fontSize: 26,
-    fontWeight: '800',
-  },
-  countBadge: {
-    color: COLORS.textMuted,
-    fontSize: 13,
-    fontWeight: '600',
+  body: {
+    flex: 1,
+    paddingHorizontal: SPACING.md,
   },
   catScroll: {
     flexGrow: 0,
@@ -141,8 +127,8 @@ const styles = StyleSheet.create({
     marginRight: SPACING.xs,
   },
   chipActive: {
-    backgroundColor: COLORS.warning,
-    borderColor: COLORS.warning,
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
   },
   chipText: {
     color: COLORS.textMuted,
@@ -150,7 +136,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   chipTextActive: {
-    color: '#1A1A1A',
+    color: '#FFF',
   },
   listContent: {
     paddingBottom: 100,

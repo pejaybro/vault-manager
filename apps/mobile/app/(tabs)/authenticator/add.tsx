@@ -20,16 +20,18 @@ export default function AddTOTPScreen() {
   const [digits, setDigits] = useState<6 | 8>(6);
 
   const handleBarCodeScanned = ({ data }: { data: string }) => {
-    const parsed = parseTOTPUri(data);
-    if (parsed) {
-      setIssuer(parsed.issuer);
-      setAccount(parsed.account);
-      setSecret(parsed.secret);
-      setPeriod(parsed.period);
-      setDigits(parsed.digits);
-      setMode('manual');
-      Alert.alert('Scanned QR', `Found ${parsed.issuer} (${parsed.account})`);
-    } else {
+    try {
+      const parsed = parseTOTPUri(data);
+      if (parsed) {
+        if (parsed.issuer) setIssuer(parsed.issuer);
+        if (parsed.account) setAccount(parsed.account);
+        if (parsed.secret) setSecret(parsed.secret);
+        if (parsed.period) setPeriod(parsed.period);
+        if (parsed.digits) setDigits(parsed.digits);
+        setMode('manual');
+        Alert.alert('Scanned QR', `Found ${parsed.issuer || 'Account'} (${parsed.account || ''})`);
+      }
+    } catch (err) {
       Alert.alert('Invalid QR', 'QR code is not a valid 2FA authenticator barcode.');
     }
   };

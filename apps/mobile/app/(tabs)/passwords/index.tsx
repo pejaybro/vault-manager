@@ -1,21 +1,25 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Plus, KeyRound } from 'lucide-react-native';
+import { Plus } from 'lucide-react-native';
 import { useVault } from '../../../context/VaultContext';
-import { getEntriesByType, Category } from '@vault/core';
+import { getEntriesByType, Category, PasswordData } from '@vault/core';
 import { VaultCard } from '../../../components/VaultCard';
 import { SearchBar } from '../../../components/SearchBar';
 import { EmptyState } from '../../../components/EmptyState';
+import { AppHeader } from '../../../components/AppHeader';
 import { COLORS, RADII, SPACING } from '../../../constants/theme';
 
-const CATEGORY_FILTERS: { label: string; value: Category | 'all' }[] = [
+const BASE_CATEGORY_FILTERS: { label: string; value: string }[] = [
   { label: 'All', value: 'all' },
   { label: 'Work', value: 'work' },
   { label: 'Social', value: 'social' },
   { label: 'Banking', value: 'banking' },
   { label: 'Shopping', value: 'shopping' },
   { label: 'Email', value: 'email' },
+  { label: 'Personal', value: 'personal' },
+  { label: 'Gaming', value: 'gaming' },
+  { label: 'Crypto', value: 'crypto' },
   { label: 'Other', value: 'other' },
 ];
 
@@ -24,11 +28,26 @@ export default function PasswordsScreen() {
   const { vault, toggleFav } = useVault();
 
   const [query, setQuery] = useState('');
-  const [selectedCat, setSelectedCat] = useState<Category | 'all'>('all');
+  const [selectedCat, setSelectedCat] = useState<string>('all');
 
   const passwordEntries = useMemo(() => {
     if (!vault) return [];
     return getEntriesByType(vault, 'password');
+  }, [vault]);
+
+  const categoryFilters = useMemo(() => {
+    const list = [...BASE_CATEGORY_FILTERS];
+    if (vault) {
+      vault.entries.forEach((entry) => {
+        if (entry.type === 'password') {
+          const cat = (entry.data as PasswordData).category;
+          if (cat && !list.some((c) => c.value.toLowerCase() === cat.toLowerCase())) {
+            list.push({ label: cat.charAt(0).toUpperCase() + cat.slice(1), value: cat });
+          }
+        }
+      });
+    }
+    return list;
   }, [vault]);
 
   const filteredEntries = useMemo(() => {
@@ -41,7 +60,8 @@ export default function PasswordsScreen() {
         (e.data as any).url?.toLowerCase().includes(q);
 
       const matchesCat =
-        selectedCat === 'all' || (e.data as any).category === selectedCat;
+        selectedCat === 'all' ||
+        (e.data as any).category?.toLowerCase() === selectedCat.toLowerCase();
 
       return matchesSearch && matchesCat;
     });
@@ -49,50 +69,57 @@ export default function PasswordsScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Passwords</Text>
-        <Text style={styles.countBadge}>{passwordEntries.length} items</Text>
+      <AppHeader title="Passwords" countBadge={passwordEntries.length} />
+
+      <View style={styles.body}>
+        <SearchBar query={query} onChangeQuery={setQuery} placeholder="Search passwords..." />
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.catScroll}>
+          {categoryFilters.map((cat) => (
+            <TouchableOpacity
+              key={cat.value}
+              style={[
+                styles.chip,
+                selectedCat.toLowerCase() === cat.value.toLowerCase() && styles.chipActive,
+              ]}
+              onPress={() => setSelectedCat(cat.value)}
+            >
+              <Text
+                style={[
+                  styles.chipText,
+                  selectedCat.toLowerCase() === cat.value.toLowerCase() && styles.chipTextActive,
+                ]}
+              >
+                {cat.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        {filteredEntries.length === 0 ? (
+          <EmptyState
+            title={query ? 'No matching passwords' : 'No Passwords Saved'}
+            description={
+              query
+                ? 'Try a different search or filter.'
+                : 'Tap the + button below to add your first password.'
+            }
+          />
+        ) : (
+          <FlatList
+            data={filteredEntries}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <VaultCard
+                entry={item}
+                onPress={() => router.push(`/(tabs)/passwords/${item.id}` as any)}
+                onToggleFav={() => toggleFav(item.id)}
+              />
+            )}
+            contentContainerStyle={styles.listContent}
+          />
+        )}
       </View>
-
-      <SearchBar query={query} onChangeQuery={setQuery} placeholder="Search passwords..." />
-
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.catScroll}>
-        {CATEGORY_FILTERS.map((cat) => (
-          <TouchableOpacity
-            key={cat.value}
-            style={[styles.chip, selectedCat === cat.value && styles.chipActive]}
-            onPress={() => setSelectedCat(cat.value)}
-          >
-            <Text style={[styles.chipText, selectedCat === cat.value && styles.chipTextActive]}>
-              {cat.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      {filteredEntries.length === 0 ? (
-        <EmptyState
-          title={query ? 'No matching passwords' : 'No Passwords Saved'}
-          description={
-            query
-              ? 'Try a different search or filter.'
-              : 'Tap the + button below to add your first password.'
-          }
-        />
-      ) : (
-        <FlatList
-          data={filteredEntries}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <VaultCard
-              entry={item}
-              onPress={() => router.push(`/(tabs)/passwords/${item.id}` as any)}
-              onToggleFav={() => toggleFav(item.id)}
-            />
-          )}
-          contentContainerStyle={styles.listContent}
-        />
-      )}
 
       <TouchableOpacity
         style={styles.fab}
@@ -108,24 +135,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-    paddingHorizontal: SPACING.lg,
-    paddingTop: 50,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    justifyContent: 'space-between',
-    marginBottom: SPACING.xs,
-  },
-  headerTitle: {
-    color: COLORS.text,
-    fontSize: 28,
-    fontWeight: '800',
-  },
-  countBadge: {
-    color: COLORS.textMuted,
-    fontSize: 13,
-    fontWeight: '600',
+  body: {
+    flex: 1,
+    paddingHorizontal: SPACING.md,
   },
   catScroll: {
     flexGrow: 0,

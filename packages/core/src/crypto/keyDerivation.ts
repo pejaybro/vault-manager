@@ -1,77 +1,55 @@
 // ============================================================
-// KEY DERIVATION — Argon2id
+// KEY DERIVATION — PBKDF2 (SHA-256)
 // Derives a 256-bit AES key from the master password
-// NOTE: Uses Web Crypto API (available in RN via polyfill + desktop natively)
+// Pure JavaScript using @noble/hashes — runs everywhere (mobile, desktop, web)
 // ============================================================
 
-// Key derivation using Web Crypto API PBKDF2 (Argon2id compatible interface)
-
-function getCrypto(): Crypto {
-  const c = (typeof globalThis !== 'undefined' && globalThis.crypto) ||
-            (typeof window !== 'undefined' && window.crypto) ||
-            (typeof globalThis !== 'undefined' && (globalThis as any).crypto);
-  if (!c) throw new Error('Web Crypto API is unavailable. Polyfill required.');
-  return c;
-}
+import { pbkdf2 } from '@noble/hashes/pbkdf2.js';
+import { sha256 } from '@noble/hashes/sha2.js';
+import { randomBytes } from '@noble/hashes/utils.js';
 
 /**
  * Generate a cryptographically random salt (16 bytes)
  */
 export function generateSalt(): Uint8Array {
-  const salt = new Uint8Array(16);
-  getCrypto().getRandomValues(salt);
-  return salt;
+  return randomBytes(16);
 }
 
 /**
- * Derive an AES-256-GCM key from a master password using PBKDF2
- * (Argon2id via argon2-browser is added in M2 — PBKDF2 used as scaffold)
+ * Derive an AES-256-GCM key (32 bytes) from a master password using PBKDF2-SHA256
  */
 export async function deriveKey(
   password: string,
   salt: Uint8Array
-): Promise<CryptoKey> {
+): Promise<Uint8Array> {
   const encoder = new TextEncoder();
   const passwordBuffer = encoder.encode(password);
 
-  // Import password as raw key material
-  const keyMaterial = await getCrypto().subtle.importKey(
-    'raw',
-    passwordBuffer,
-    'PBKDF2',
-    false,
-    ['deriveKey']
-  );
-
-  // Derive AES-256-GCM key
-  return getCrypto().subtle.deriveKey(
-    {
-      name: 'PBKDF2',
-      salt: salt as any,
-      iterations: 310_000,  // OWASP recommended for PBKDF2-SHA256
-      hash: 'SHA-256',
-    },
-    keyMaterial,
-    { name: 'AES-GCM', length: 256 },
-    false, // not extractable
-    ['encrypt', 'decrypt']
-  );
+  // 310,000 iterations PBKDF2-SHA256, 32 bytes output (OWASP recommended)
+  return pbkdf2(sha256, passwordBuffer, salt, { c: 310_000, dkLen: 32 });
 }
 
 /**
  * Encode Uint8Array to base64 string
  */
 export function uint8ToBase64(bytes: Uint8Array): string {
-  return btoa(String.fromCharCode(...bytes));
+  let binary = '';
+  const len = bytes.byteLength;
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
 }
 
 /**
  * Decode base64 string to Uint8Array
  */
 export function base64ToUint8(base64: string): Uint8Array {
-  return new Uint8Array(
-    atob(base64)
-      .split('')
-      .map((c) => c.charCodeAt(0))
-  );
+  const binary = atob(base64);
+  const len = binary.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
 }

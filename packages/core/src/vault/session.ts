@@ -12,7 +12,7 @@ let _salt: Uint8Array | null = null;
 /**
  * Start a session after successful unlock
  */
-export function startSession(vault: Vault, key: CryptoKey, salt: Uint8Array): void {
+export function startSession(vault: Vault, key: Uint8Array | CryptoKey, salt: Uint8Array): void {
   _session = { vault, key };
   _salt = salt;
 }

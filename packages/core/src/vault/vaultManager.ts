@@ -25,7 +25,7 @@ const nanoid = customAlphabet('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVW
  */
 export async function createNewVault(
   masterPassword: string
-): Promise<{ encryptedFile: EncryptedVaultFile; key: CryptoKey; salt: Uint8Array }> {
+): Promise<{ encryptedFile: EncryptedVaultFile; key: Uint8Array | CryptoKey; salt: Uint8Array }> {
   const salt = generateSalt();
   const key = await deriveKey(masterPassword, salt);
 
@@ -50,7 +50,7 @@ export async function createNewVault(
 export async function openVault(
   encryptedFile: EncryptedVaultFile,
   masterPassword: string
-): Promise<{ vault: Vault; key: CryptoKey }> {
+): Promise<{ vault: Vault; key: Uint8Array | CryptoKey }> {
   const salt = base64ToUint8(encryptedFile.salt);
   const key = await deriveKey(masterPassword, salt);
   const vault = await decryptVault(encryptedFile, key);
@@ -62,7 +62,7 @@ export async function openVault(
  */
 export async function saveVault(
   vault: Vault,
-  key: CryptoKey,
+  key: Uint8Array | CryptoKey,
   salt: Uint8Array,
   storage: StorageAdapter
 ): Promise<void> {

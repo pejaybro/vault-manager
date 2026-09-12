@@ -1,8 +1,11 @@
 // ============================================================
 // PASSKEYS / FIDO2 WEBAUTHN ENGINE
 // Generates ECDSA P-256 keypairs for passwordless sign-ins
+// Pure JavaScript using @noble/curves and @noble/hashes
 // ============================================================
 
+import { p256 } from '@noble/curves/nist.js';
+import { randomBytes } from '@noble/hashes/utils.js';
 import { uint8ToBase64, base64ToUint8 } from './keyDerivation';
 
 export interface PasskeyData {
@@ -11,17 +14,9 @@ export interface PasskeyData {
   rpName: string;             // Relying Party Name (e.g. "GitHub")
   userHandle: string;         // User account identifier
   userName: string;           // Display username
-  publicKeyPem: string;       // Exported Public Key PEM / Base64
-  privateKeyPkcs8: string;   // Exported Encrypted Private Key Base64
+  publicKeyPem: string;       // Exported Public Key Base64 (65-byte uncompressed point)
+  privateKeyPkcs8: string;   // Exported Private Key Base64 (32-byte scalar)
   signCount: number;          // Sign counter
-}
-
-function getCrypto(): Crypto {
-  const c = (typeof globalThis !== 'undefined' && globalThis.crypto) ||
-            (typeof window !== 'undefined' && window.crypto) ||
-            (typeof globalThis !== 'undefined' && (globalThis as any).crypto);
-  if (!c) throw new Error('Web Crypto API is unavailable. Polyfill required.');
-  return c;
 }
 
 /**
@@ -32,36 +27,17 @@ export async function generatePasskey(
   rpName: string,
   userName: string
 ): Promise<PasskeyData> {
-  const keyPair = await getCrypto().subtle.generateKey(
-    {
-      name: 'ECDSA',
-      namedCurve: 'P-256',
-    },
-    true, // extractable for vault encryption
-    ['sign', 'verify']
-  );
-
-  // Generate random 16-byte credential ID
-  const credentialIdBytes = new Uint8Array(16);
-  getCrypto().getRandomValues(credentialIdBytes);
-  const credentialId = uint8ToBase64(credentialIdBytes);
-
-  // Export public key
-  const rawPublicKey = await getCrypto().subtle.exportKey('spki', keyPair.publicKey);
-  const publicKeyPem = uint8ToBase64(new Uint8Array(rawPublicKey));
-
-  // Export private key
-  const rawPrivateKey = await getCrypto().subtle.exportKey('pkcs8', keyPair.privateKey);
-  const privateKeyPkcs8 = uint8ToBase64(new Uint8Array(rawPrivateKey));
+  const { secretKey, publicKey } = p256.keygen();
+  const credentialIdBytes = randomBytes(16);
 
   return {
-    credentialId,
+    credentialId: uint8ToBase64(credentialIdBytes),
     rpId,
     rpName,
     userHandle: userName,
     userName,
-    publicKeyPem,
-    privateKeyPkcs8,
+    publicKeyPem: uint8ToBase64(publicKey),
+    privateKeyPkcs8: uint8ToBase64(secretKey),
     signCount: 0,
   };
 }
@@ -74,22 +50,8 @@ export async function signPasskeyChallenge(
   challengeBase64: string
 ): Promise<string> {
   const privateKeyBytes = base64ToUint8(passkey.privateKeyPkcs8);
-
-  const privateKey = await getCrypto().subtle.importKey(
-    'pkcs8',
-    privateKeyBytes as any,
-    { name: 'ECDSA', namedCurve: 'P-256' },
-    false,
-    ['sign']
-  );
-
   const challengeBytes = base64ToUint8(challengeBase64);
+  const sig = p256.sign(challengeBytes, privateKeyBytes);
 
-  const signature = await getCrypto().subtle.sign(
-    { name: 'ECDSA', hash: 'SHA-256' },
-    privateKey,
-    challengeBytes as any
-  );
-
-  return uint8ToBase64(new Uint8Array(signature));
+  return uint8ToBase64(sig);
 }

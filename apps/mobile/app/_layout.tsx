@@ -9,11 +9,13 @@ if (typeof globalThis !== 'undefined' && globalThis.crypto) {
 }
 
 import React, { useEffect } from 'react';
+import { View } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { VaultProvider, useVault } from '../context/VaultContext';
-import { LoadingOverlay } from '../components/LoadingOverlay';
+import { DrawerProvider } from '../context/DrawerContext';
+import { SideDrawer } from '../components/SideDrawer';
 import { COLORS } from '../constants/theme';
 
 function RootLayoutNav() {
@@ -22,6 +24,8 @@ function RootLayoutNav() {
   const router = useRouter();
 
   useEffect(() => {
+    // Do not navigate until the vault existence check is complete.
+    // This is what prevents the setup screen flash.
     if (isLoading) return;
 
     const segList = segments as string[];
@@ -40,8 +44,14 @@ function RootLayoutNav() {
     }
   }, [isUnlocked, vaultExists, isLoading, segments]);
 
+  // While checking vault state: render a plain dark background.
+  // This prevents ANY flash of wrong screen before we know where to navigate.
   if (isLoading) {
-    return <LoadingOverlay message="Checking vault security..." />;
+    return (
+      <View style={{ flex: 1, backgroundColor: COLORS.background }}>
+        <StatusBar style="light" />
+      </View>
+    );
   }
 
   return (
@@ -51,6 +61,8 @@ function RootLayoutNav() {
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: COLORS.background },
+          // No animation so there's no slide/flash between auth and app screens
+          animation: 'none',
         }}
       >
         <Stack.Screen name="(auth)/setup" />
@@ -58,6 +70,7 @@ function RootLayoutNav() {
         <Stack.Screen name="(auth)/import" />
         <Stack.Screen name="(tabs)" />
       </Stack>
+      <SideDrawer />
     </>
   );
 }
@@ -66,7 +79,9 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <VaultProvider>
-        <RootLayoutNav />
+        <DrawerProvider>
+          <RootLayoutNav />
+        </DrawerProvider>
       </VaultProvider>
     </SafeAreaProvider>
   );
