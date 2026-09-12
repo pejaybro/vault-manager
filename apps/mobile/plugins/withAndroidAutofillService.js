@@ -1,6 +1,6 @@
 const { withAndroidManifest } = require('@expo/config-plugins');
 
-module.exports = function withAndroidAutofillService(config) {
+function withAndroidAutofillService(config) {
   return withAndroidManifest(config, (config) => {
     const androidManifest = config.modResults;
 
@@ -42,4 +42,6 @@ module.exports = function withAndroidAutofillService(config) {
 
     return config;
   });
-};
+}
+
+module.exports = withAndroidAutofillService;
