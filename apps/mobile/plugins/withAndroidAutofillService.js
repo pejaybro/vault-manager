@@ -126,6 +126,16 @@ public class AutofillService extends android.service.autofill.AutofillService {
         fs.writeFileSync(propertiesPath, content, 'utf8');
       }
 
+      // Add overrideVersionCheck to gradle.properties to suppress AGP version checks
+      const gradlePropsPath = path.join(projectRoot, 'android', 'gradle.properties');
+      if (fs.existsSync(gradlePropsPath)) {
+        let gpContent = fs.readFileSync(gradlePropsPath, 'utf8');
+        if (!gpContent.includes('android.overrideVersionCheck')) {
+          gpContent += '\nandroid.overrideVersionCheck=true\nandroid.suppressUnsupportedCompileSdk=37\n';
+          fs.writeFileSync(gradlePropsPath, gpContent, 'utf8');
+        }
+      }
+
       // Set AGP 8.8.2 and pin SDK 34 for React Native 0.87 & Gradle 8.10.2 compatibility
       const buildGradlePath = path.join(projectRoot, 'android', 'build.gradle');
       if (fs.existsSync(buildGradlePath)) {
@@ -135,16 +145,35 @@ public class AutofillService extends android.service.autofill.AutofillService {
           "classpath('com.android.tools.build:gradle:8.8.2')"
         );
         if (!bgContent.includes('compileSdkVersion = 34')) {
-          bgContent = `buildscript {
+          bgContent = bgContent.replace(
+            /buildscript\s*\{/g,
+            `buildscript {
   ext {
     buildToolsVersion = "34.0.0"
     minSdkVersion = 24
     compileSdkVersion = 34
     targetSdkVersion = 34
-  }
-}\n\n` + bgContent;
+  }`
+          );
         }
         fs.writeFileSync(buildGradlePath, bgContent, 'utf8');
+      }
+
+      // Prevent duplicate Kotlin plugin & update proguard file in app/build.gradle
+      const appBuildGradlePath = path.join(projectRoot, 'android', 'app', 'build.gradle');
+      if (fs.existsSync(appBuildGradlePath)) {
+        let appBgContent = fs.readFileSync(appBuildGradlePath, 'utf8');
+        appBgContent = appBgContent.replace(
+          /getDefaultProguardFile\(["']proguard-android\.txt["']\)/g,
+          'getDefaultProguardFile("proguard-android-optimize.txt")'
+        );
+        if (appBgContent.includes('apply plugin: "org.jetbrains.kotlin.android"')) {
+          appBgContent = appBgContent.replace(
+            /apply plugin:\s*["']org\.jetbrains\.kotlin\.android["']/g,
+            '// apply plugin: "org.jetbrains.kotlin.android"'
+          );
+        }
+        fs.writeFileSync(appBuildGradlePath, appBgContent, 'utf8');
       }
 
       return config;

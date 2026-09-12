@@ -4,23 +4,28 @@ $mobile = "$root\apps\mobile"
 $android = "$mobile\android"
 $destFile = "$root\dist\VaultManager.apk"
 
-# Set JAVA_HOME if not already set
+# Set JAVA_HOME and ANDROID_HOME environment variables
 if (-not $env:JAVA_HOME -and (Test-Path 'C:\Program Files\Android\Android Studio\jbr')) {
     $env:JAVA_HOME = 'C:\Program Files\Android\Android Studio\jbr'
     $env:Path = "$env:JAVA_HOME\bin;$env:Path"
+}
+if (-not $env:ANDROID_HOME -and (Test-Path 'C:\Users\pjdri\AppData\Local\Android\Sdk')) {
+    $env:ANDROID_HOME = 'C:\Users\pjdri\AppData\Local\Android\Sdk'
 }
 
 # Kill stale Gradle daemons
 Stop-Process -Name java -Force -ErrorAction SilentlyContinue
 Start-Sleep -Seconds 2
 
-# Step 1: Run prebuild only if android directory is missing
+# Step 1: Run prebuild
 Set-Location $mobile
-if (-not (Test-Path "$android\build.gradle")) {
-    Write-Host "[1/3] Running expo prebuild..."
-    npx expo prebuild --platform android --no-install
-} else {
-    Write-Host "[1/3] Using existing native Android files (skipping prebuild)..."
+Write-Host "[1/3] Running expo prebuild..."
+npx expo prebuild --platform android --no-install
+
+# Write local.properties if missing
+$localProps = "$android\local.properties"
+if (-not (Test-Path $localProps)) {
+    "sdk.dir=C:\\Users\\pjdri\\AppData\\Local\\Android\\Sdk" | Out-File -FilePath $localProps -Encoding ascii
 }
 
 # Step 2: Gradle assemble
