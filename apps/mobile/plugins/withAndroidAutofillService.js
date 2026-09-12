@@ -356,7 +356,7 @@ public class AutofillService extends android.service.autofill.AutofillService {
                         : (parsed.packageName != null ? parsed.packageName : "New Login");
 
                 if (targetName.contains(".")) {
-                    String[] parts = targetName.split("\\.");
+                    String[] parts = targetName.split(java.util.regex.Pattern.quote("."));
                     if (parts.length >= 2) {
                         String candidate = parts[parts.length - (parts[parts.length - 1].equals("android") ? 2 : 1)];
                         targetName = candidate.substring(0, 1).toUpperCase() + candidate.substring(1);
