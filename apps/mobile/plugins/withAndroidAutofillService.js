@@ -105,11 +105,13 @@ public class AutofillService extends android.service.autofill.AutofillService {
     },
   ]);
 
-  // 3. Update gradle-wrapper.properties to Gradle 8.13 for Expo Kotlin compiler compatibility
+  // 3. Set AGP 8.7.3 and Gradle wrapper 8.10.2 for Android SDK 34 stability
   config = withDangerousMod(config, [
     'android',
     async (config) => {
       const projectRoot = config.modRequest.projectRoot;
+
+      // Update gradle-wrapper.properties
       const propertiesPath = path.join(
         projectRoot,
         'android',
@@ -117,12 +119,22 @@ public class AutofillService extends android.service.autofill.AutofillService {
         'wrapper',
         'gradle-wrapper.properties'
       );
-
       if (fs.existsSync(propertiesPath)) {
         let content = fs.readFileSync(propertiesPath, 'utf8');
-        content = content.replace(/gradle-.*-bin\.zip/g, 'gradle-8.13-all.zip');
-        content = content.replace(/gradle-.*-all\.zip/g, 'gradle-8.13-all.zip');
+        content = content.replace(/gradle-.*-bin\.zip/g, 'gradle-8.10.2-all.zip');
+        content = content.replace(/gradle-.*-all\.zip/g, 'gradle-8.10.2-all.zip');
         fs.writeFileSync(propertiesPath, content, 'utf8');
+      }
+
+      // Set AGP 8.8.2 and Gradle wrapper 8.10.2 for React Native 0.87 compatibility
+      const buildGradlePath = path.join(projectRoot, 'android', 'build.gradle');
+      if (fs.existsSync(buildGradlePath)) {
+        let bgContent = fs.readFileSync(buildGradlePath, 'utf8');
+        bgContent = bgContent.replace(
+          /classpath\(['"]com\.android\.tools\.build:gradle.*['"]\)/g,
+          "classpath('com.android.tools.build:gradle:8.8.2')"
+        );
+        fs.writeFileSync(buildGradlePath, bgContent, 'utf8');
       }
 
       return config;
