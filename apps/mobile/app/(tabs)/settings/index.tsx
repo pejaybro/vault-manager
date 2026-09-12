@@ -9,6 +9,9 @@ import {
   Switch,
   Modal,
   TextInput,
+  ActivityIndicator,
+  Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
@@ -22,6 +25,9 @@ import {
   ChevronRight,
   Check,
   X,
+  Eye,
+  EyeOff,
+  ScanFace,
 } from 'lucide-react-native';
 import { useVault } from '../../../context/VaultContext';
 import { AutofillModule } from '../../../modules/autofill/AutofillModule';
@@ -41,31 +47,54 @@ export default function SettingsScreen() {
   const [bioModalVisible, setBioModalVisible] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState('');
   const [bioError, setBioError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isEnabling, setIsEnabling] = useState(false);
+
+  // Label changes per platform
+  const bioLabel = Platform.OS === 'ios' ? 'Face ID / Touch ID' : 'Fingerprint Unlock';
+  const bioSubLabel = Platform.OS === 'ios'
+    ? 'Use Face ID or Touch ID to unlock vault'
+    : 'Use fingerprint sensor to unlock vault';
+  const BioIcon = Platform.OS === 'ios' ? ScanFace : Fingerprint;
 
   const handleToggleBio = async (enable: boolean) => {
     if (enable) {
       setConfirmPassword('');
       setBioError('');
+      setShowPassword(false);
       setBioModalVisible(true);
     } else {
       await disableBiometrics();
-      Alert.alert('Biometrics Disabled', 'Biometric unlock has been turned off.');
+      Alert.alert(
+        'Biometrics Disabled',
+        `${bioLabel} unlock has been turned off.`,
+        [{ text: 'OK' }]
+      );
     }
   };
 
   const handleConfirmEnableBio = async () => {
-    if (!confirmPassword) {
+    if (!confirmPassword.trim()) {
       setBioError('Please enter your Master Password');
       return;
     }
-
-    const success = await enableBiometrics(confirmPassword);
-    if (success) {
-      setBioModalVisible(false);
-      setConfirmPassword('');
-      Alert.alert('Success', 'Biometric login (Face ID / Fingerprint) is now active!');
-    } else {
-      setBioError('Incorrect Master Password. Please try again.');
+    setIsEnabling(true);
+    setBioError('');
+    try {
+      const success = await enableBiometrics(confirmPassword);
+      if (success) {
+        setBioModalVisible(false);
+        setConfirmPassword('');
+        Alert.alert(
+          'Biometrics Enabled ✅',
+          `${bioLabel} is now active. Next time you open the app, you will be prompted automatically.`,
+          [{ text: 'Got it' }]
+        );
+      } else {
+        setBioError('Incorrect Master Password. Please try again.');
+      }
+    } finally {
+      setIsEnabling(false);
     }
   };
 
@@ -73,21 +102,21 @@ export default function SettingsScreen() {
     <View style={styles.container}>
       <AppHeader title="Settings" />
 
-      <ScrollView style={styles.body} contentContainerStyle={styles.content}>
-        {/* Security Section */}
+      <ScrollView style={styles.body} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+
+        {/* Security & Access */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Security & Access</Text>
 
-          {/* Biometrics Switch Row */}
           {hasBiometrics && (
             <View style={styles.row}>
               <View style={styles.rowLeft}>
                 <View style={[styles.iconBox, styles.iconBoxPrimary]}>
-                  <Fingerprint size={20} color={COLORS.primary} />
+                  <BioIcon size={20} color={COLORS.primary} />
                 </View>
                 <View style={styles.textContainer}>
-                  <Text style={styles.rowLabel}>Biometric Unlock</Text>
-                  <Text style={styles.rowSub}>Use Face ID or Fingerprint to unlock</Text>
+                  <Text style={styles.rowLabel}>{bioLabel}</Text>
+                  <Text style={styles.rowSub}>{bioSubLabel}</Text>
                 </View>
               </View>
               <Switch
@@ -95,29 +124,31 @@ export default function SettingsScreen() {
                 onValueChange={handleToggleBio}
                 trackColor={{ false: COLORS.surfaceBorder, true: COLORS.primary }}
                 thumbColor="#FFF"
+                ios_backgroundColor={COLORS.surfaceBorder}
               />
             </View>
           )}
 
-          {/* Autofill Provider Row */}
-          <TouchableOpacity
-            style={styles.row}
-            onPress={() => AutofillModule.openAutofillSettings()}
-            activeOpacity={0.7}
-          >
-            <View style={styles.rowLeft}>
-              <View style={[styles.iconBox, styles.iconBoxSuccess]}>
-                <Smartphone size={20} color={COLORS.success} />
+          {/* Android only — System Autofill */}
+          {Platform.OS === 'android' && (
+            <TouchableOpacity
+              style={styles.row}
+              onPress={() => AutofillModule.openAutofillSettings()}
+              activeOpacity={0.7}
+            >
+              <View style={styles.rowLeft}>
+                <View style={[styles.iconBox, styles.iconBoxSuccess]}>
+                  <Smartphone size={20} color={COLORS.success} />
+                </View>
+                <View style={styles.textContainer}>
+                  <Text style={styles.rowLabel}>System Autofill (Android)</Text>
+                  <Text style={styles.rowSub}>Set Vault Manager as default autofill service</Text>
+                </View>
               </View>
-              <View style={styles.textContainer}>
-                <Text style={styles.rowLabel}>System Autofill (Android)</Text>
-                <Text style={styles.rowSub}>Set Vault Manager as default autofill service</Text>
-              </View>
-            </View>
-            <ChevronRight size={18} color={COLORS.textMuted} />
-          </TouchableOpacity>
+              <ChevronRight size={18} color={COLORS.textMuted} />
+            </TouchableOpacity>
+          )}
 
-          {/* Lock Vault Row */}
           <TouchableOpacity
             style={[styles.row, styles.dangerRow]}
             onPress={lock}
@@ -136,11 +167,9 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Organization Section */}
+        {/* Vault Organization */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Vault Organization</Text>
-
-          {/* Manage Categories Row */}
           <TouchableOpacity
             style={styles.row}
             onPress={() => router.push('/(tabs)/settings/categories' as any)}
@@ -159,10 +188,9 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Sync & Backup Section */}
+        {/* Sync & Backup */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Sync & Backup</Text>
-
           <TouchableOpacity
             style={styles.row}
             onPress={() => router.push('/(tabs)/settings/export')}
@@ -198,7 +226,7 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* About Section */}
+        {/* About */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>About Vault Manager</Text>
           <View style={styles.row}>
@@ -208,71 +236,105 @@ export default function SettingsScreen() {
               </View>
               <View style={styles.textContainer}>
                 <Text style={styles.rowLabel}>Vault Manager v1.0.0</Text>
-                <Text style={styles.rowSub}>Zero-Knowledge • AES-256-GCM • Offline Storage</Text>
+                <Text style={styles.rowSub}>Zero-Knowledge • AES-256-GCM • Fully Offline</Text>
               </View>
             </View>
           </View>
         </View>
       </ScrollView>
 
-      {/* Enable Biometrics Master Password Verification Modal */}
+      {/* ====== Enable Biometrics Modal ====== */}
       <Modal
         visible={bioModalVisible}
         transparent
         animationType="fade"
-        onRequestClose={() => setBioModalVisible(false)}
+        statusBarTranslucent
+        onRequestClose={() => { if (!isEnabling) setBioModalVisible(false); }}
       >
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
           <View style={styles.modalCard}>
+            {/* Header */}
             <View style={styles.modalHeader}>
               <View style={styles.modalTitleRow}>
-                <Fingerprint size={24} color={COLORS.primary} />
-                <Text style={styles.modalTitle}>Enable Biometrics</Text>
+                <BioIcon size={22} color={COLORS.primary} />
+                <Text style={styles.modalTitle}>Enable {bioLabel}</Text>
               </View>
-              <TouchableOpacity onPress={() => setBioModalVisible(false)}>
-                <X size={20} color={COLORS.textMuted} />
-              </TouchableOpacity>
+              {!isEnabling && (
+                <TouchableOpacity onPress={() => setBioModalVisible(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <X size={20} color={COLORS.textMuted} />
+                </TouchableOpacity>
+              )}
             </View>
 
             <Text style={styles.modalSubtitle}>
-              Confirm your Master Password once to securely register Face ID / Fingerprint on this device.
+              Confirm your Master Password once to register {bioLabel} on this device.
             </Text>
 
-            <TextInput
-              value={confirmPassword}
-              onChangeText={(text) => {
-                setConfirmPassword(text);
-                setBioError('');
-              }}
-              placeholder="Enter Master Password"
-              placeholderTextColor={COLORS.textMuted}
-              secureTextEntry
-              style={styles.modalInput}
-              autoFocus
-              onSubmitEditing={handleConfirmEnableBio}
-            />
+            {/* Password input with show/hide toggle */}
+            <View style={styles.inputWrapper}>
+              <TextInput
+                value={confirmPassword}
+                onChangeText={(text) => {
+                  setConfirmPassword(text);
+                  setBioError('');
+                }}
+                placeholder="Enter Master Password"
+                placeholderTextColor={COLORS.textMuted}
+                secureTextEntry={!showPassword}
+                style={styles.modalInput}
+                autoFocus
+                editable={!isEnabling}
+                autoCapitalize="none"
+                autoCorrect={false}
+                onSubmitEditing={handleConfirmEnableBio}
+                returnKeyType="done"
+              />
+              <TouchableOpacity
+                style={styles.eyeBtn}
+                onPress={() => setShowPassword((v) => !v)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                {showPassword
+                  ? <EyeOff size={18} color={COLORS.textMuted} />
+                  : <Eye size={18} color={COLORS.textMuted} />
+                }
+              </TouchableOpacity>
+            </View>
 
             {Boolean(bioError) && (
               <Text style={styles.bioErrorText}>{bioError}</Text>
             )}
 
+            {/* Actions */}
             <View style={styles.modalActions}>
               <TouchableOpacity
                 style={styles.modalCancelBtn}
                 onPress={() => setBioModalVisible(false)}
+                disabled={isEnabling}
               >
-                <Text style={styles.modalCancelText}>Cancel</Text>
+                <Text style={[styles.modalCancelText, isEnabling && { opacity: 0.4 }]}>Cancel</Text>
               </TouchableOpacity>
+
               <TouchableOpacity
-                style={styles.modalConfirmBtn}
+                style={[styles.modalConfirmBtn, isEnabling && styles.btnDisabled]}
                 onPress={handleConfirmEnableBio}
+                disabled={isEnabling}
               >
-                <Check size={16} color="#FFF" />
-                <Text style={styles.modalConfirmText}>Enable</Text>
+                {isEnabling ? (
+                  <ActivityIndicator size="small" color="#FFF" />
+                ) : (
+                  <Check size={16} color="#FFF" />
+                )}
+                <Text style={styles.modalConfirmText}>
+                  {isEnabling ? 'Verifying...' : 'Enable'}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -283,23 +345,19 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  body: {
-    flex: 1,
-  },
+  body: { flex: 1 },
   content: {
     paddingHorizontal: SPACING.md,
     paddingTop: SPACING.xs,
     paddingBottom: 80,
   },
-  section: {
-    marginBottom: SPACING.lg,
-  },
+  section: { marginBottom: SPACING.lg },
   sectionTitle: {
     color: COLORS.textMuted,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 1.2,
     marginBottom: SPACING.xs + 2,
     marginLeft: 4,
   },
@@ -314,9 +372,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.surfaceBorder,
   },
-  dangerRow: {
-    borderColor: 'rgba(239, 68, 68, 0.25)',
-  },
+  dangerRow: { borderColor: 'rgba(239,68,68,0.25)' },
   rowLeft: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -331,45 +387,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  iconBoxPrimary: {
-    backgroundColor: 'rgba(99, 102, 241, 0.12)',
-  },
-  iconBoxSuccess: {
-    backgroundColor: 'rgba(34, 197, 94, 0.12)',
-  },
-  iconBoxDanger: {
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
-  },
-  iconBoxAccent: {
-    backgroundColor: 'rgba(129, 140, 248, 0.12)',
-  },
-  iconBoxMuted: {
-    backgroundColor: COLORS.card,
-  },
-  textContainer: {
-    flex: 1,
-    flexShrink: 1,
-  },
-  rowLabel: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  rowSub: {
-    color: COLORS.textMuted,
-    fontSize: 12,
-    marginTop: 2,
-    lineHeight: 16,
-  },
+  iconBoxPrimary:  { backgroundColor: 'rgba(99,102,241,0.12)' },
+  iconBoxSuccess:  { backgroundColor: 'rgba(34,197,94,0.12)' },
+  iconBoxDanger:   { backgroundColor: 'rgba(239,68,68,0.12)' },
+  iconBoxAccent:   { backgroundColor: 'rgba(129,140,248,0.12)' },
+  iconBoxMuted:    { backgroundColor: COLORS.card },
+  textContainer: { flex: 1, flexShrink: 1 },
+  rowLabel: { color: COLORS.text, fontSize: 15, fontWeight: '600' },
+  rowSub:   { color: COLORS.textMuted, fontSize: 12, marginTop: 2, lineHeight: 16 },
+
+  // Modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: SPACING.lg,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    justifyContent: 'flex-end',      // Slides up from bottom — better UX on all phones
+    padding: SPACING.md,
+    paddingBottom: Platform.OS === 'ios' ? 34 : SPACING.md, // safe area
   },
   modalCard: {
-    width: '100%',
     backgroundColor: COLORS.surface,
     borderRadius: RADII.lg,
     padding: SPACING.lg,
@@ -380,40 +415,41 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: SPACING.xs,
+    marginBottom: SPACING.sm,
   },
-  modalTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  modalTitle: {
-    color: COLORS.text,
-    fontSize: 18,
-    fontWeight: '700',
-  },
+  modalTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  modalTitle: { color: COLORS.text, fontSize: 18, fontWeight: '700' },
   modalSubtitle: {
     color: COLORS.textMuted,
     fontSize: 13,
-    lineHeight: 18,
-    marginVertical: SPACING.sm,
+    lineHeight: 19,
+    marginBottom: SPACING.md,
   },
+
+  // Input with eye toggle
+  inputWrapper: { position: 'relative', marginBottom: 6 },
   modalInput: {
     backgroundColor: COLORS.card,
     borderRadius: RADII.md,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: COLORS.surfaceBorder,
+    // White text so it's visible on dark background
     color: COLORS.text,
     paddingHorizontal: SPACING.md,
-    paddingVertical: 12,
+    paddingVertical: 14,
+    paddingRight: 48,          // make room for eye icon
     fontSize: 15,
-    marginVertical: SPACING.xs,
+    fontWeight: '500',
   },
-  bioErrorText: {
-    color: COLORS.danger,
-    fontSize: 13,
-    marginTop: 4,
+  eyeBtn: {
+    position: 'absolute',
+    right: 14,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
   },
+
+  bioErrorText: { color: COLORS.danger, fontSize: 13, marginTop: 2, marginBottom: 4 },
   modalActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
@@ -422,26 +458,23 @@ const styles = StyleSheet.create({
   },
   modalCancelBtn: {
     paddingHorizontal: SPACING.md,
-    paddingVertical: 10,
+    paddingVertical: 11,
     borderRadius: RADII.md,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceBorder,
   },
-  modalCancelText: {
-    color: COLORS.textMuted,
-    fontSize: 14,
-    fontWeight: '600',
-  },
+  modalCancelText: { color: COLORS.textMuted, fontSize: 14, fontWeight: '600' },
   modalConfirmBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     backgroundColor: COLORS.primary,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: 10,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: 11,
     borderRadius: RADII.md,
+    minWidth: 110,
+    justifyContent: 'center',
   },
-  modalConfirmText: {
-    color: '#FFF',
-    fontSize: 14,
-    fontWeight: '700',
-  },
+  modalConfirmText: { color: '#FFF', fontSize: 14, fontWeight: '700' },
+  btnDisabled: { opacity: 0.6 },
 });

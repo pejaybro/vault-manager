@@ -10,6 +10,10 @@ interface SecureInputProps {
   label?: string;
   style?: ViewStyle;
   error?: string;
+  onSubmitEditing?: () => void;
+  returnKeyType?: 'done' | 'go' | 'next' | 'search' | 'send';
+  autoFocus?: boolean;
+  editable?: boolean;
 }
 
 export const SecureInput: React.FC<SecureInputProps> = ({
@@ -19,6 +23,10 @@ export const SecureInput: React.FC<SecureInputProps> = ({
   label,
   style,
   error,
+  onSubmitEditing,
+  returnKeyType = 'done',
+  autoFocus = false,
+  editable = true,
 }) => {
   const [show, setShow] = useState(false);
 
@@ -35,13 +43,16 @@ export const SecureInput: React.FC<SecureInputProps> = ({
           style={styles.input}
           autoCapitalize="none"
           autoCorrect={false}
+          onSubmitEditing={onSubmitEditing}
+          returnKeyType={returnKeyType}
+          autoFocus={autoFocus}
+          editable={editable}
         />
-        <TouchableOpacity style={styles.eyeBtn} onPress={() => setShow(!show)}>
-          {show ? (
-            <EyeOff size={20} color={COLORS.textMuted} />
-          ) : (
-            <Eye size={20} color={COLORS.textMuted} />
-          )}
+        <TouchableOpacity style={styles.eyeBtn} onPress={() => setShow(!show)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          {show
+            ? <EyeOff size={20} color={COLORS.textMuted} />
+            : <Eye size={20} color={COLORS.textMuted} />
+          }
         </TouchableOpacity>
       </View>
       {error && <Text style={styles.errorText}>{error}</Text>}
@@ -55,16 +66,18 @@ const styles = StyleSheet.create({
   },
   label: {
     color: COLORS.textMuted,
-    fontSize: 14,
+    fontSize: 13,
     marginBottom: SPACING.xs,
-    fontWeight: '500',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.surface,
     borderRadius: RADII.md,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: COLORS.surfaceBorder,
     paddingHorizontal: SPACING.md,
   },
@@ -73,9 +86,10 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
+    // Explicitly white so text is visible on dark surface
     color: COLORS.text,
     fontSize: 16,
-    paddingVertical: SPACING.md,
+    paddingVertical: 14,
   },
   eyeBtn: {
     padding: SPACING.xs,

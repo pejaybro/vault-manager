@@ -9,7 +9,10 @@
     "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.vaultmanager.app"
+      "bundleIdentifier": "com.vaultmanager.app",
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "Vault Manager uses Face ID to securely unlock your encrypted vault."
+      }
     },
     "android": {
       "package": "com.vaultmanager.app",

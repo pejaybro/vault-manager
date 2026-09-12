@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { Platform } from 'react-native';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
 import {
@@ -175,10 +176,10 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
 
       const result = await LocalAuthentication.authenticateAsync({
-        promptMessage: 'Unlock Vault Manager',
+        promptMessage: Platform.OS === 'ios' ? 'Use Face ID to unlock Vault Manager' : 'Use fingerprint to unlock Vault Manager',
         fallbackLabel: 'Use Master Password',
-        disableDeviceFallback: false,
         cancelLabel: 'Cancel',
+        disableDeviceFallback: false,
       });
 
       if (result.success) {
