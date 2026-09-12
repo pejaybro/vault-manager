@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "main": "expo-router/entry",
   "dependencies": {
-    "@peculiar/webcrypto": "^1.7.1",
     "@vault/core": "workspace:*",
     "expo": "~57.0.22",
     "expo-camera": "^57.0.4",

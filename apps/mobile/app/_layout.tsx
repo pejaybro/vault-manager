@@ -1,12 +1,8 @@
 import 'react-native-get-random-values';
-import { Crypto as PeculiarCrypto } from '@peculiar/webcrypto';
-
-if (typeof globalThis !== 'undefined' && globalThis.crypto) {
-  if (!(globalThis.crypto as any).subtle) {
-    const peculiar = new PeculiarCrypto();
-    (globalThis.crypto as any).subtle = peculiar.subtle;
-  }
-}
+// NOTE: @peculiar/webcrypto intentionally NOT imported here.
+// React Native 0.73+ / Expo SDK 50+ with Hermes already ships native
+// crypto.subtle (SubtleCrypto). react-native-get-random-values patches
+// crypto.getRandomValues for older Android devices only.
 
 import React, { useEffect, useRef } from 'react';
 import { Stack, useRouter } from 'expo-router';
@@ -18,24 +14,19 @@ import { DrawerProvider } from '../context/DrawerContext';
 import { SideDrawer } from '../components/SideDrawer';
 import { COLORS } from '../constants/theme';
 
-// Keep the native splash screen visible until we decide where to navigate.
-// This is the ONLY reliable way to prevent the setup/login flash.
+// Keep native splash visible until we know which screen to show.
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 function RootLayoutNav() {
   const { isUnlocked, vaultExists, isLoading } = useVault();
   const router = useRouter();
-  // Track whether we've already navigated to the correct first screen
   const navigated = useRef(false);
 
   useEffect(() => {
-    // Wait until vault state is fully resolved
     if (isLoading) return;
-    // Only do the initial navigation once
     if (navigated.current) return;
     navigated.current = true;
 
-    // Navigate to the correct screen based on vault state
     if (!vaultExists) {
       router.replace('/(auth)/setup');
     } else if (!isUnlocked) {
@@ -44,13 +35,11 @@ function RootLayoutNav() {
       router.replace('/(tabs)/passwords');
     }
 
-    // Hide native splash screen AFTER we've navigated
-    // The new screen is already mounted by the time this runs
+    // Hide splash only after correct screen is ready
     SplashScreen.hideAsync().catch(() => {});
   }, [isLoading, isUnlocked, vaultExists]);
 
-  // While loading: don't render the Stack at all so Expo Router has nothing to flash
-  // The native splash screen is covering everything at this point
+  // Return null while loading — splash screen covers the gap, nothing flashes
   if (isLoading) return null;
 
   return (
