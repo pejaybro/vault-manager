@@ -9,7 +9,7 @@ import { LoadingOverlay } from '../../components/LoadingOverlay';
 
 export default function SetupScreen() {
   const router = useRouter();
-  const { createVault, isLoading } = useVault();
+  const { createVault } = useVault();
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -37,6 +37,8 @@ export default function SetupScreen() {
 
     setIsCreating(true);
     try {
+      // Let React Native commit the overlay before the synchronous PBKDF2 work begins.
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
       await createVault(password);
       router.replace('/(tabs)/passwords');
     } catch (err: any) {
@@ -47,7 +49,7 @@ export default function SetupScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {isLoading && <LoadingOverlay message="Encrypting and initializing vault..." />}
+      {isCreating && <LoadingOverlay message="Encrypting and initializing vault..." />}
 
       <View style={styles.header}>
         <View style={styles.logoBadge}>
