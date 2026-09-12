@@ -105,10 +105,6 @@ public class AutofillService extends android.service.autofill.AutofillService {
     },
   ]);
 
-      return config;
-    },
-  ]);
-
   return config;
 }
 
