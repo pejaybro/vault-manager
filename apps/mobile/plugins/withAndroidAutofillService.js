@@ -298,28 +298,32 @@ public class AutofillService extends android.service.autofill.AutofillService {
                 }
             }
 
-            // 2. Build SaveInfo so Android prompts the user with the "Save to Vault Manager?" dialog on submit
-            List<AutofillId> requiredIds = new ArrayList<>();
-            if (parsed.passwordId != null) {
-                requiredIds.add(parsed.passwordId);
-            }
-            if (parsed.usernameId != null) {
-                requiredIds.add(parsed.usernameId);
-            }
+            // 2. Build SaveInfo with Samsung Pass / Bitwarden style behavior
+            List<AutofillId> allIds = new ArrayList<>();
+            if (parsed.passwordId != null) allIds.add(parsed.passwordId);
+            if (parsed.usernameId != null) allIds.add(parsed.usernameId);
 
-            if (!requiredIds.isEmpty()) {
-                AutofillId[] reqArray = requiredIds.toArray(new AutofillId[0]);
-                int saveType = SaveInfo.SAVE_DATA_TYPE_PASSWORD;
-                if (parsed.usernameId != null) {
-                    saveType |= SaveInfo.SAVE_DATA_TYPE_USERNAME;
+            if (!allIds.isEmpty()) {
+                AutofillId[] idArray = allIds.toArray(new AutofillId[0]);
+                int saveType = SaveInfo.SAVE_DATA_TYPE_PASSWORD | SaveInfo.SAVE_DATA_TYPE_USERNAME;
+                
+                // Use password as required if present, or all as optional to allow multi-step logins (e.g. Spotify)
+                SaveInfo.Builder saveInfoBuilder = (parsed.passwordId != null)
+                        ? new SaveInfo.Builder(saveType, new AutofillId[]{ parsed.passwordId })
+                        : new SaveInfo.Builder(saveType, idArray);
+
+                if (parsed.usernameId != null && parsed.passwordId != null) {
+                    saveInfoBuilder.setOptionalIds(new AutofillId[]{ parsed.usernameId });
                 }
-                SaveInfo.Builder saveInfoBuilder = new SaveInfo.Builder(saveType, reqArray);
+
+                // Trigger save when the login activity closes or views become invisible (user logged in!)
+                saveInfoBuilder.setFlags(SaveInfo.FLAG_SAVE_ON_ALL_VIEWS_INVISIBLE);
+
                 responseBuilder.setSaveInfo(saveInfoBuilder.build());
             }
 
             callback.onSuccess(responseBuilder.build());
         } catch (Throwable t) {
-            // Absolute safety catch to ensure OS never crashes
             try {
                 callback.onSuccess(null);
             } catch (Throwable ignored) {}
@@ -335,37 +339,37 @@ public class AutofillService extends android.service.autofill.AutofillService {
                 return;
             }
 
-            FillContext latestContext = contexts.get(contexts.size() - 1);
-            AssistStructure structure = latestContext.getStructure();
-            if (structure == null) {
-                callback.onSuccess();
-                return;
+            ParsedStructure parsed = new ParsedStructure();
+            // Traverse all contexts in the session (handles multi-step logins where email was screen 1 and password screen 2)
+            for (FillContext ctx : contexts) {
+                AssistStructure structure = ctx.getStructure();
+                if (structure != null) {
+                    parseStructureInto(structure, parsed);
+                }
             }
 
-            ParsedStructure parsed = parseStructure(structure);
+            if ((parsed.passwordValue != null && !parsed.passwordValue.isEmpty()) ||
+                (parsed.usernameValue != null && !parsed.usernameValue.isEmpty())) {
 
-            if (parsed.passwordValue != null && !parsed.passwordValue.isEmpty()) {
                 String targetName = (parsed.webDomain != null && !parsed.webDomain.isEmpty())
                         ? parsed.webDomain
                         : (parsed.packageName != null ? parsed.packageName : "New Login");
 
-                // Clean package name to human-readable (e.g. "com.spotify.music" -> "Spotify")
                 if (targetName.contains(".")) {
-                    String[] parts = targetName.split("\\\\.");
+                    String[] parts = targetName.split("\\.");
                     if (parts.length >= 2) {
                         String candidate = parts[parts.length - (parts[parts.length - 1].equals("android") ? 2 : 1)];
                         targetName = candidate.substring(0, 1).toUpperCase() + candidate.substring(1);
                     }
                 }
 
-                // Store in pending saves file so React Native Vault Manager saves it to vault
                 String existingPending = readStorageFile(PENDING_SAVE_FILE);
                 JSONArray pendingArray = new JSONArray(existingPending);
 
                 JSONObject newSave = new JSONObject();
                 newSave.put("name", targetName);
                 newSave.put("username", parsed.usernameValue != null ? parsed.usernameValue : "");
-                newSave.put("password", parsed.passwordValue);
+                newSave.put("password", parsed.passwordValue != null ? parsed.passwordValue : "");
                 newSave.put("url", parsed.webDomain != null ? parsed.webDomain : parsed.packageName);
                 newSave.put("timestamp", System.currentTimeMillis());
 
@@ -375,7 +379,6 @@ public class AutofillService extends android.service.autofill.AutofillService {
 
             callback.onSuccess();
         } catch (Throwable t) {
-            // Absolute safety catch
             try {
                 callback.onSuccess();
             } catch (Throwable ignored) {}
@@ -384,13 +387,18 @@ public class AutofillService extends android.service.autofill.AutofillService {
 
     private ParsedStructure parseStructure(AssistStructure structure) {
         ParsedStructure result = new ParsedStructure();
+        parseStructureInto(structure, result);
+        return result;
+    }
+
+    private void parseStructureInto(AssistStructure structure, ParsedStructure result) {
+        if (structure == null) return;
         int windowCount = structure.getWindowNodeCount();
         for (int i = 0; i < windowCount; i++) {
             WindowNode windowNode = structure.getWindowNodeAt(i);
             ViewNode rootView = windowNode.getRootViewNode();
             traverseNode(rootView, result);
         }
-        return result;
     }
 
     private void traverseNode(ViewNode node, ParsedStructure result) {
@@ -406,8 +414,18 @@ public class AutofillService extends android.service.autofill.AutofillService {
         String[] hints = node.getAutofillHints();
         int inputType = node.getInputType();
         String idEntry = node.getIdEntry();
+        
+        // Extract value from getText() or AutofillValue (critical for Android 9+ password fields)
+        String val = null;
         CharSequence text = node.getText();
-        String val = text != null ? text.toString() : null;
+        if (text != null && text.length() > 0) {
+            val = text.toString();
+        } else if (node.getAutofillValue() != null) {
+            AutofillValue afv = node.getAutofillValue();
+            if (afv.isText() && afv.getTextValue() != null) {
+                val = afv.getTextValue().toString();
+            }
+        }
 
         boolean isPassword = false;
         boolean isUsername = false;
@@ -451,6 +469,14 @@ public class AutofillService extends android.service.autofill.AutofillService {
         } else if (isUsername && result.usernameId == null) {
             result.usernameId = node.getAutofillId();
             if (val != null && !val.isEmpty()) {
+                result.usernameValue = val;
+            }
+        } else {
+            // Update values if previously found without values
+            if (isPassword && (result.passwordValue == null || result.passwordValue.isEmpty()) && val != null && !val.isEmpty()) {
+                result.passwordValue = val;
+            }
+            if (isUsername && (result.usernameValue == null || result.usernameValue.isEmpty()) && val != null && !val.isEmpty()) {
                 result.usernameValue = val;
             }
         }
