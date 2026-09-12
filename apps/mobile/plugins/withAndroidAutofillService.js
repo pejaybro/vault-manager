@@ -71,8 +71,7 @@ function withAndroidAutofillService(config) {
       fs.mkdirSync(xmlDir, { recursive: true });
       const xmlFilePath = path.join(xmlDir, 'autofill_service_config.xml');
       const xmlContent = `<?xml version="1.0" encoding="utf-8"?>
-<autofill-service xmlns:android="http://schemas.android.com/apk/res/android"
-    android:compatibilityMode="true" />
+<autofill-service xmlns:android="http://schemas.android.com/apk/res/android" />
 `;
       fs.writeFileSync(xmlFilePath, xmlContent, 'utf8');
 
