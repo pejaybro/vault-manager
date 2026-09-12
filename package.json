@@ -7,7 +7,7 @@
     "desktop": "pnpm --filter desktop dev",
     "test": "pnpm --filter @vault/core test",
     "typecheck": "pnpm -r exec tsc --noEmit",
-    "build:apk:local": "powershell -Command \"if (-not $env:JAVA_HOME -and (Test-Path 'C:\\Program Files\\Android\\Android Studio\\jbr')) { $env:JAVA_HOME='C:\\Program Files\\Android\\Android Studio\\jbr'; $env:Path=\\\"$env:JAVA_HOME\\bin;$env:Path\\\" }; cd apps/mobile; npx expo prebuild --platform android; cd android; .\\gradlew.bat assembleRelease\"",
+    "build:apk:local": "powershell -Command \"if (-not $env:JAVA_HOME -and (Test-Path 'C:\\Program Files\\Android\\Android Studio\\jbr')) { $env:JAVA_HOME='C:\\Program Files\\Android\\Android Studio\\jbr'; $env:Path=\\\"$env:JAVA_HOME\\bin;$env:Path\\\" }; cd apps/mobile; npx expo prebuild --platform android; cd android; .\\gradlew.bat assembleRelease; New-Item -ItemType Directory -Force -Path '..\\..\\..\\dist\\mobile\\android' | Out-Null; Copy-Item 'app\\build\\outputs\\apk\\release\\app-release.apk' '..\\..\\..\\dist\\mobile\\android\\VaultManager.apk' -Force; Write-Host 'SUCCESS: Saved to dist/mobile/android/VaultManager.apk'\"",
     "build:mobile:android": "cd apps/mobile && eas build --platform android --profile preview",
     "build:mobile:ios": "cd apps/mobile && eas build --platform ios --profile preview",
     "build:desktop:windows": "cd apps/desktop && pnpm tauri build",
