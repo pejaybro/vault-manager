@@ -26,9 +26,6 @@
     },
     "android": {
       "package": "com.vaultmanager.app",
-      "compileSdkVersion": 34,
-      "targetSdkVersion": 34,
-      "buildToolsVersion": "34.0.0",
       "adaptiveIcon": {
         "backgroundColor": "#0F0F12",
         "foregroundImage": "./assets/android-icon-foreground.png",
