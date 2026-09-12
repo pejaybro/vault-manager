@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, ScrollView, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Plus } from 'lucide-react-native';
+import { Plus, ShieldCheck, Check, X, KeyRound, User } from 'lucide-react-native';
 import { useVault } from '../../../context/VaultContext';
-import { getEntriesByType, Category, PasswordData } from '@vault/core';
+import { getEntriesByType, PasswordData } from '@vault/core';
 import { VaultCard } from '../../../components/VaultCard';
 import { SearchBar } from '../../../components/SearchBar';
 import { EmptyState } from '../../../components/EmptyState';
@@ -25,10 +25,11 @@ const BASE_CATEGORY_FILTERS: { label: string; value: string }[] = [
 
 export default function PasswordsScreen() {
   const router = useRouter();
-  const { vault, toggleFav } = useVault();
+  const { vault, toggleFav, pendingSave, clearPendingSave, savePendingCredential } = useVault();
 
   const [query, setQuery] = useState('');
   const [selectedCat, setSelectedCat] = useState<string>('all');
+  const [isSavingPending, setIsSavingPending] = useState(false);
 
   const passwordEntries = useMemo(() => {
     if (!vault) return [];
@@ -66,6 +67,15 @@ export default function PasswordsScreen() {
       return matchesSearch && matchesCat;
     });
   }, [passwordEntries, query, selectedCat]);
+
+  const handleSavePending = async () => {
+    setIsSavingPending(true);
+    try {
+      await savePendingCredential();
+    } finally {
+      setIsSavingPending(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -127,6 +137,69 @@ export default function PasswordsScreen() {
       >
         <Plus size={24} color="#FFF" />
       </TouchableOpacity>
+
+      {/* Samsung Pass style Save Credentials Bottom Sheet Popup */}
+      <Modal
+        visible={Boolean(pendingSave)}
+        transparent
+        animationType="slide"
+        onRequestClose={clearPendingSave}
+      >
+        <View style={styles.saveSheetOverlay}>
+          <View style={styles.saveSheetCard}>
+            <View style={styles.sheetHeader}>
+              <View style={styles.badgeIcon}>
+                <ShieldCheck size={22} color={COLORS.primary} />
+              </View>
+              <View style={styles.sheetHeaderTexts}>
+                <Text style={styles.sheetTitle}>Save to Vault Manager?</Text>
+                <Text style={styles.sheetSub}>
+                  Save credentials for {pendingSave?.name || 'this app'} to autofill next time.
+                </Text>
+              </View>
+              <TouchableOpacity onPress={clearPendingSave} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <X size={20} color={COLORS.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.credPreviewBox}>
+              <View style={styles.previewRow}>
+                <User size={16} color={COLORS.primary} />
+                <Text style={styles.previewLabel}>Account:</Text>
+                <Text style={styles.previewValue} numberOfLines={1}>
+                  {pendingSave?.username || 'No username'}
+                </Text>
+              </View>
+              <View style={styles.previewRow}>
+                <KeyRound size={16} color={COLORS.warning} />
+                <Text style={styles.previewLabel}>Password:</Text>
+                <Text style={styles.previewValue}>••••••••••••</Text>
+              </View>
+            </View>
+
+            <View style={styles.sheetActions}>
+              <TouchableOpacity
+                style={styles.sheetCancelBtn}
+                onPress={clearPendingSave}
+                disabled={isSavingPending}
+              >
+                <Text style={styles.sheetCancelText}>Not Now</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.sheetSaveBtn}
+                onPress={handleSavePending}
+                disabled={isSavingPending}
+              >
+                <Check size={16} color="#FFF" />
+                <Text style={styles.sheetSaveText}>
+                  {isSavingPending ? 'Saving...' : 'Save Credential'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -179,10 +252,108 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 8,
+    elevation: 5,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+
+  // Save Credentials Sheet (Samsung Pass style)
+  saveSheetOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    justifyContent: 'flex-end',
+    padding: SPACING.md,
+    paddingBottom: 24,
+  },
+  saveSheetCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADII.lg,
+    padding: SPACING.lg,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceBorder,
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginBottom: SPACING.md,
+  },
+  badgeIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: RADII.md,
+    backgroundColor: 'rgba(99,102,241,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sheetHeaderTexts: { flex: 1 },
+  sheetTitle: {
+    color: COLORS.text,
+    fontSize: 17,
+    fontWeight: '700',
+  },
+  sheetSub: {
+    color: COLORS.textMuted,
+    fontSize: 13,
+    marginTop: 2,
+    lineHeight: 18,
+  },
+  credPreviewBox: {
+    backgroundColor: COLORS.card,
+    borderRadius: RADII.md,
+    padding: SPACING.md,
+    gap: 8,
+    marginBottom: SPACING.lg,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceBorder,
+  },
+  previewRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  previewLabel: {
+    color: COLORS.textMuted,
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  previewValue: {
+    color: COLORS.text,
+    fontSize: 13,
+    fontWeight: '600',
+    flex: 1,
+  },
+  sheetActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+  },
+  sheetCancelBtn: {
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 11,
+    borderRadius: RADII.md,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceBorder,
+  },
+  sheetCancelText: {
+    color: COLORS.textMuted,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  sheetSaveBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: 11,
+    borderRadius: RADII.md,
+  },
+  sheetSaveText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '700',
   },
 });

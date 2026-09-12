@@ -17,6 +17,7 @@ import {
   PasswordData,
 } from '@vault/core';
 import { mobileStorage } from '../storage/ExpoStorageAdapter';
+import { AutofillModule, PendingAutofillSave } from '../modules/autofill/AutofillModule';
 
 const BIO_KEY_STORAGE = 'vault_manager_bio_key';
 
@@ -29,6 +30,9 @@ interface VaultContextType {
   error: string | null;
   hasBiometrics: boolean;
   isBiometricsEnabled: boolean;
+  pendingSave: PendingAutofillSave | null;
+  clearPendingSave: () => Promise<void>;
+  savePendingCredential: () => Promise<void>;
   createVault: (password: string) => Promise<void>;
   unlockVault: (password: string) => Promise<boolean>;
   unlockWithBiometrics: () => Promise<boolean>;
@@ -60,6 +64,8 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [error, setError] = useState<string | null>(null);
   const [hasBiometrics, setHasBiometrics] = useState(false);
   const [isBiometricsEnabled, setIsBiometricsEnabled] = useState(false);
+  // Pending save prompt from OS Autofill
+  const [pendingSave, setPendingSave] = useState<PendingAutofillSave | null>(null);
   // Prevents double-triggering biometric auto-prompt on remount
   const biometricAttempted = useRef(false);
 
@@ -91,6 +97,21 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     init();
   }, []);
 
+  // Check for pending saves when vault becomes unlocked
+  useEffect(() => {
+    if (isUnlocked && vault) {
+      // Sync active credentials to native autofill cache
+      AutofillModule.syncCredentialsToAutofill(vault);
+
+      // Check if Android AutofillService captured any new credentials
+      AutofillModule.getPendingSaves().then((saves) => {
+        if (saves && saves.length > 0) {
+          setPendingSave(saves[0]);
+        }
+      });
+    }
+  }, [isUnlocked, vault]);
+
   const lock = useCallback(() => {
     setIsUnlocked(false);
     setVault(null);
@@ -98,7 +119,15 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setCurrentSalt(null);
     setError(null);
     biometricAttempted.current = false;
+    AutofillModule.syncCredentialsToAutofill(null);
   }, []);
+
+  const persistVault = async (newVault: Vault) => {
+    if (!currentKey || !currentSalt) throw new Error('Vault is locked');
+    await saveVaultCore(newVault, currentKey, currentSalt, mobileStorage);
+    setVault(newVault);
+    await AutofillModule.syncCredentialsToAutofill(newVault);
+  };
 
   const createVault = async (password: string) => {
     setError(null);
@@ -110,6 +139,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setCurrentSalt(salt);
       setVaultExists(true);
       setIsUnlocked(true);
+      await AutofillModule.syncCredentialsToAutofill(openedVault);
     } catch (err: any) {
       setError(err.message || 'Failed to create vault');
       throw err;
@@ -130,6 +160,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setCurrentKey(key);
       setCurrentSalt(base64ToUint8(encryptedFile.salt));
       setIsUnlocked(true);
+      await AutofillModule.syncCredentialsToAutofill(openedVault);
       return true;
     } catch {
       setError('Invalid Master Password');
@@ -196,12 +227,6 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  const persistVault = async (newVault: Vault) => {
-    if (!currentKey || !currentSalt) throw new Error('Vault is locked');
-    await saveVaultCore(newVault, currentKey, currentSalt, mobileStorage);
-    setVault(newVault);
-  };
-
   const addEntry = async (entry: Omit<VaultEntry, 'id' | 'createdAt' | 'updatedAt'>) => {
     if (!vault) return;
     const { vault: updated } = addEntryCore(vault, entry);
@@ -224,6 +249,28 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (!vault) return;
     const updated = toggleFavCore(vault, id);
     await persistVault(updated);
+  };
+
+  const clearPendingSave = async () => {
+    setPendingSave(null);
+    await AutofillModule.clearPendingSaves();
+  };
+
+  const savePendingCredential = async () => {
+    if (!pendingSave || !vault) return;
+    const data: PasswordData = {
+      username: pendingSave.username,
+      password: pendingSave.password,
+      url: pendingSave.url,
+      category: 'other',
+    };
+    await addEntry({
+      type: 'password',
+      name: pendingSave.name,
+      favourite: false,
+      data,
+    });
+    await clearPendingSave();
   };
 
   const getCategoryUsageCount = (categoryName: string): number => {
@@ -296,6 +343,7 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setCurrentSalt(base64ToUint8(encryptedFile.salt));
       setVaultExists(true);
       setIsUnlocked(true);
+      await AutofillModule.syncCredentialsToAutofill(importedVault);
       return true;
     } catch {
       setError('Failed to import vault file. Invalid password or corrupted file.');
@@ -314,6 +362,9 @@ export const VaultProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         error,
         hasBiometrics,
         isBiometricsEnabled,
+        pendingSave,
+        clearPendingSave,
+        savePendingCredential,
         createVault,
         unlockVault,
         unlockWithBiometrics,
