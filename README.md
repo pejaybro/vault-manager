@@ -77,7 +77,15 @@ dist/
 
 ### 📱 1. Mobile Builds
 
-#### A. Build Android APK (`.apk`)
+#### A. Build Android APK Locally on PC (Offline — No Cloud)
+```bash
+pnpm build:apk:local
+```
+- **Command**: Runs Expo local prebuild + local Gradle release compilation on your laptop
+- **Output Folder**: `apps/mobile/android/app/build/outputs/apk/release/`
+- **Installable File Name**: `app-release.apk`
+
+#### B. Cloud EAS Android APK (`.apk`)
 ```bash
 pnpm build:mobile:android
 ```
