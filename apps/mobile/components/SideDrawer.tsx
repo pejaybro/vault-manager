@@ -96,6 +96,7 @@ export function SideDrawer() {
       badge: passwordCount,
       active: pathname.startsWith('/(tabs)/passwords') || pathname === '/passwords',
     },
+    /*
     {
       label: '2FA Authenticator',
       path: '/(tabs)/authenticator',
@@ -110,6 +111,7 @@ export function SideDrawer() {
       badge: keyCount,
       active: pathname.startsWith('/(tabs)/keys') || pathname === '/keys',
     },
+    */
     {
       label: 'Settings & Security',
       path: '/(tabs)/settings',

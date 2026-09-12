@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, QrCode, Copy, Share2, ShieldAlert } from 'lucide-react-native';
+import { ArrowLeft, Copy, Share2, ShieldAlert } from 'lucide-react-native';
 import QRCode from 'react-native-qrcode-svg';
 import * as Clipboard from 'expo-clipboard';
 import * as Sharing from 'expo-sharing';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { useVault } from '../../../context/VaultContext';
 import { SecureInput } from '../../../components/SecureInput';
 import { STORAGE_KEYS } from '@vault/core';
@@ -20,6 +20,7 @@ export default function ExportVaultScreen() {
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [encryptedPayload, setEncryptedPayload] = useState('');
   const [error, setError] = useState('');
+  const canEncodeAsSingleQr = encryptedPayload.length > 0 && encryptedPayload.length <= 800;
 
   const handleConfirm = async () => {
     setError('');
@@ -73,7 +74,7 @@ export default function ExportVaultScreen() {
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <ArrowLeft size={20} color={COLORS.text} />
         </TouchableOpacity>
-        <Text style={styles.screenTitle}>Export & Sync Vault</Text>
+        <Text style={styles.screenTitle}>Export Vault</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -82,7 +83,7 @@ export default function ExportVaultScreen() {
           <ShieldAlert size={36} color={COLORS.warning} style={{ alignSelf: 'center', marginBottom: SPACING.sm }} />
           <Text style={styles.confirmTitle}>Confirm Master Password</Text>
           <Text style={styles.confirmSub}>
-            Enter your master password to authorize vault export & QR code generation.
+            Enter your master password to authorize vault export.
           </Text>
 
           <SecureInput
@@ -99,17 +100,20 @@ export default function ExportVaultScreen() {
         </View>
       ) : (
         <View style={styles.exportCard}>
-          <Text style={styles.exportTitle}>Encrypted QR Code</Text>
-          <Text style={styles.exportSub}>Scan this QR code from your Desktop or second device to sync.</Text>
-
-          <View style={styles.qrBox}>
-            <QRCode
-              value={encryptedPayload.slice(0, 800)} // SVG QR display
-              size={220}
-              color="#000"
-              backgroundColor="#FFF"
-            />
-          </View>
+          {canEncodeAsSingleQr ? (
+            <>
+              <Text style={styles.exportTitle}>Encrypted QR Code</Text>
+              <Text style={styles.exportSub}>Use this only with a receiver that supports full vault-payload imports.</Text>
+              <View style={styles.qrBox}>
+                <QRCode value={encryptedPayload} size={220} color="#000" backgroundColor="#FFF" />
+              </View>
+            </>
+          ) : (
+            <>
+              <Text style={styles.exportTitle}>Vault Backup</Text>
+              <Text style={styles.exportSub}>This vault is too large for a single reliable QR code. Share the backup file or copy the full payload instead.</Text>
+            </>
+          )}
 
           <View style={styles.actionRow}>
             <TouchableOpacity style={styles.actionBtn} onPress={handleCopyPayload}>

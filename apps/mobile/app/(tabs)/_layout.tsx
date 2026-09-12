@@ -12,8 +12,8 @@ export default function TabsLayout() {
       }}
     >
       <Tabs.Screen name="passwords" />
-      <Tabs.Screen name="authenticator" />
-      <Tabs.Screen name="keys" />
+      {/* <Tabs.Screen name="authenticator" /> */}
+      {/* <Tabs.Screen name="keys" /> */}
       <Tabs.Screen name="settings" />
     </Tabs>
   );

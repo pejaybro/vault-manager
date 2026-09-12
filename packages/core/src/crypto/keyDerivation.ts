@@ -8,6 +8,12 @@ import { pbkdf2 } from '@noble/hashes/pbkdf2.js';
 import { sha256 } from '@noble/hashes/sha2.js';
 import { randomBytes } from '@noble/hashes/utils.js';
 
+function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  const buffer = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(buffer).set(bytes);
+  return buffer;
+}
+
 /**
  * Generate a cryptographically random salt (16 bytes)
  */
@@ -25,7 +31,30 @@ export async function deriveKey(
   const encoder = new TextEncoder();
   const passwordBuffer = encoder.encode(password);
 
-  // 100,000 iterations PBKDF2-SHA256, 32 bytes output (OWASP mobile benchmark for instant responsiveness)
+  // Native WebCrypto keeps the KDF off the JS thread on supported runtimes.
+  // Fall back to the portable implementation for environments without SubtleCrypto.
+  if (globalThis.crypto?.subtle) {
+    const keyMaterial = await globalThis.crypto.subtle.importKey(
+      'raw',
+      toArrayBuffer(passwordBuffer),
+      'PBKDF2',
+      false,
+      ['deriveBits']
+    );
+    const derivedBits = await globalThis.crypto.subtle.deriveBits(
+      {
+        name: 'PBKDF2',
+        salt: toArrayBuffer(salt),
+        iterations: 100_000,
+        hash: 'SHA-256',
+      },
+      keyMaterial,
+      256
+    );
+    return new Uint8Array(derivedBits);
+  }
+
+  // 100,000 iterations PBKDF2-SHA256, 32 bytes output.
   return pbkdf2(sha256, passwordBuffer, salt, { c: 100_000, dkLen: 32 });
 }
 

@@ -213,8 +213,8 @@ export default function SettingsScreen() {
                 <QrCode size={20} color={COLORS.primary} />
               </View>
               <View style={styles.textContainer}>
-                <Text style={styles.rowLabel}>Export Vault / QR Sync</Text>
-                <Text style={styles.rowSub}>Create encrypted backup file or QR transfer payload</Text>
+                <Text style={styles.rowLabel}>Export Vault</Text>
+                <Text style={styles.rowSub}>Create an encrypted backup file or copy its payload</Text>
               </View>
             </View>
             <ChevronRight size={18} color={COLORS.textMuted} />
